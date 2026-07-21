@@ -1,0 +1,62 @@
+export const mockHomes = [
+  {
+    id: 1,
+    name: "Home A",
+    status: "WARNING",
+    monthlyBudget: 1200,
+    currentCost: 945,
+    totalPowerWatts: 3840,
+    dailyKwh: 18.6,
+    devices: [
+      { id: 101, name: "Air Conditioner", powerWatts: 2350, status: "ANOMALY" },
+      { id: 104, name: "Laptop", powerWatts: 95, status: "NORMAL" },
+      { id: 102, name: "Refrigerator", powerWatts: 420, status: "NORMAL" },
+      { id: 103, name: "Washing Machine", powerWatts: 1070, status: "NORMAL" },
+      { id: 105, name: "Oven", powerWatts: 1400, status: "ANOMALY" },
+    ],
+    history: [
+      { day: "Mon", kwh: 12 },
+      { day: "Tue", kwh: 15 },
+      { day: "Wed", kwh: 14 },
+      { day: "Thu", kwh: 18 },
+      { day: "Fri", kwh: 21 },
+      { day: "Sat", kwh: 19 },
+      { day: "Sun", kwh: 23 },
+    ],
+  },
+  {
+    id: 2,
+    name: "Home B",
+    status: "NORMAL",
+    monthlyBudget: 900,
+    currentCost: 430,
+    totalPowerWatts: 1680,
+    dailyKwh: 9.4,
+    devices: [
+      { id: 201, name: "Heater", powerWatts: 900, status: "NORMAL" },
+      { id: 202, name: "TV", powerWatts: 180, status: "NORMAL" },
+      { id: 203, name: "Dishwasher", powerWatts: 600, status: "NORMAL" },
+    ],
+    history: [
+      { day: "Mon", kwh: 8 },
+      { day: "Tue", kwh: 9 },
+      { day: "Wed", kwh: 7 },
+      { day: "Thu", kwh: 10 },
+      { day: "Fri", kwh: 11 },
+      { day: "Sat", kwh: 9 },
+      { day: "Sun", kwh: 12 },
+    ],
+  },
+];
+
+export const mockNotifications = [
+  {
+    id: 1,
+    homeName: "Home A",
+    title: "High consumption detected",
+    message:
+      "Air Conditioner is consuming more energy than expected. Recommendation email is ready to be sent.",
+    type: "WARNING",
+    emailStatus: "Pending",
+  },
+];
