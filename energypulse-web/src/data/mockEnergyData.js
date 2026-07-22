@@ -48,15 +48,3 @@ export const mockHomes = [
     ],
   },
 ];
-
-export const mockNotifications = [
-  {
-    id: 1,
-    homeName: "Home A",
-    title: "High consumption detected",
-    message:
-      "Air Conditioner is consuming more energy than expected. Recommendation email is ready to be sent.",
-    type: "WARNING",
-    emailStatus: "Pending",
-  },
-];
