@@ -3,6 +3,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import NotificationConsolePage from "./pages/NotificationConsolePage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 
 function App() {
@@ -18,6 +19,15 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationConsolePage />
             </ProtectedRoute>
           }
         />
