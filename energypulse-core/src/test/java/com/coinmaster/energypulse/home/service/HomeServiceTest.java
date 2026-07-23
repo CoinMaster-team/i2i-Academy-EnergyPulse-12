@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -128,6 +129,30 @@ class HomeServiceTest {
                 registrationPublisher);
     }
 
+    @Test
+    void shouldRepublishAllPersistedHomeTopologies() {
+        Home homeA = validHome();
+        Home homeB = validHome();
+        homeA.addAppliance(
+                "Refrigerator",
+                new BigDecimal("500.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("450.00"));
+        homeB.addAppliance(
+                "Television",
+                new BigDecimal("400.00"),
+                new BigDecimal("80.00"),
+                new BigDecimal("280.00"));
+
+        when(homeRepository.findAll()).thenReturn(List.of(homeA, homeB));
+
+        int publishedCount = homeService.publishAllHomeTopologies();
+
+        assertEquals(2, publishedCount);
+        verify(registrationPublisher, times(2))
+                .publish(any(HomeRegistrationEvent.class));
+    }
+
     private CreateHomeRequest validRequest() {
         return new CreateHomeRequest(
                 "Test Home",
@@ -145,5 +170,15 @@ class HomeServiceTest {
                 new BigDecimal("500.00"),
                 new BigDecimal("100.00"),
                 new BigDecimal("650.00"));
+    }
+
+    private Home validHome() {
+        return new Home(
+                "Test Home",
+                "test@energypulse.com",
+                new BigDecimal("500.0000"),
+                new BigDecimal("1000.00"),
+                new BigDecimal("2.000000"),
+                new BigDecimal("4.000000"));
     }
 }
