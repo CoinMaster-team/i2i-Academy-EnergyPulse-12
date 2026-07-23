@@ -1,6 +1,7 @@
 # EnergyPulse
 
-EnergyPulse is the implementation of the **VoltWise Project**: a real-time IoT energy monitoring, billing and anomaly detection platform.
+EnergyPulse is the implementation of the **VoltWise Project**: a real-time IoT
+energy monitoring, billing and anomaly detection platform.
 
 ## Architecture
 
@@ -9,6 +10,7 @@ EnergyPulse is the implementation of the **VoltWise Project**: a real-time IoT e
 - **Apache Kafka:** Registration and telemetry event streaming
 - **Apache Ignite:** Live metrics, tariff state and anomaly counters
 - **React Web:** Dashboard, charts and notifications
+- **Sensor Simulator:** Scheduled appliance telemetry generation
 
 ## Project Structure
 
@@ -17,6 +19,7 @@ EnergyPulse/
 ├─ database/init/001_schema.sql
 ├─ energypulse-core/
 ├─ energypulse-web/
+├─ sensor-simulator/
 ├─ .env.example
 ├─ docker-compose.yml
 └─ README.md
@@ -73,12 +76,35 @@ Get-Content .\.env |
     }
 ```
 
-Run the backend:
+## Running the Services
+
+Run the backend core:
 
 ```powershell
 cd .\energypulse-core
 .\mvnw.cmd spring-boot:run
 ```
+
+Run the web application in a second terminal:
+
+```powershell
+cd .\energypulse-web
+npm install
+npm run dev
+```
+
+The web application uses `http://localhost:8080` by default. Set
+`VITE_API_BASE_URL` before starting Vite when the backend runs at another
+address.
+
+Run the sensor simulator in another terminal:
+
+```powershell
+cd .\sensor-simulator
+.\mvnw.cmd spring-boot:run
+```
+
+The simulator listens for registered homes and publishes appliance telemetry.
 
 ### Optional Demo Data
 
@@ -139,6 +165,43 @@ POST /api/homes/{homeId}/appliances
 
 The endpoint persists the appliance and republishes the updated home topology.
 
+### List Notifications
+
+```http
+GET /api/notifications
+GET /api/notifications/{notificationId}
+```
+
+The notification console is available at `http://localhost:5173/notifications`.
+
+## AI and Email Notifications
+
+Energy events are converted into Turkish Gemini recommendations and delivered
+to the home's contact email. If Gemini is unavailable, EnergyPulse stores and
+sends a safe Turkish fallback recommendation.
+
+Set these values in the local `.env` file:
+
+```dotenv
+GEMINI_API_KEY=your-local-api-key
+GEMINI_MODEL=gemini-3.5-flash
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-smtp-username
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM=energypulse@example.com
+NOTIFICATION_PROCESSING_ENABLED=true
+```
+
+Keep `NOTIFICATION_PROCESSING_ENABLED=false` until the credentials are ready.
+Never commit real Gemini or SMTP credentials.
+
+### Get Live Telemetry
+
+```http
+GET /api/telemetry/live
+```
+
 ## Kafka Topics
 
 | Topic | Purpose |
@@ -164,28 +227,15 @@ docker exec energypulse-postgres `
     psql -U energypulse -d energypulse -c "\dt"
 ```
 
-### pgAdmin Connection
-
-| Setting | Value |
-|---|---|
-| Host | `localhost` |
-| Port | `5432` |
-| Database | `energypulse` |
-| Username | `energypulse` |
-| Password | Local `.env` value |
-
-Tables are available under:
-
-```text
-Databases → energypulse → Schemas → public → Tables
-```
-
 ## Tests
-
-Ensure PostgreSQL is healthy and environment variables are loaded:
 
 ```powershell
 cd .\energypulse-core
+.\mvnw.cmd clean test
+```
+
+```powershell
+cd .\sensor-simulator
 .\mvnw.cmd clean test
 ```
 
@@ -198,23 +248,23 @@ cd .\energypulse-core
 | `feature/streaming-engine` | Kafka, sensors, Ignite and live data |
 | `feature/web-notifications` | Frontend and notifications |
 
-All feature work must reach `main` through pull requests.
+All feature work must reach `main` through pull requests without squashing the
+feature commit history.
 
 ## Integration Notes
 
 Streaming team:
 
-- Implement `HomeRegistrationPublisher`
-- Replace `LoggingHomeRegistrationPublisher`
-- Consume telemetry and update Ignite
-- Provide the Ignite-backed live status endpoint
+- `HomeRegistrationPublisher` is backed by Kafka.
+- Telemetry is consumed and cached in Ignite.
+- Live usage and budget metrics are exposed through the telemetry API.
 
 Web team:
 
-- Replace mock data with backend API calls
-- Use the history endpoint for charts
-- Poll the future live status endpoint
-- Display backend validation errors safely
+- Dashboard, history charts, home registration and notification APIs are connected.
+- Dashboard polling uses the streaming live-status endpoint.
+- Backend validation errors are displayed safely.
+- Verify the complete anomaly → Gemini → email → notification flow during final integration.
 
 ## Security
 

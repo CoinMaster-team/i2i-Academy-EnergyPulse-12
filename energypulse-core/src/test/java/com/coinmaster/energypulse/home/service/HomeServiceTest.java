@@ -71,6 +71,8 @@ class HomeServiceTest {
 
         assertEquals("Test Home", event.homeName());
         assertEquals(1, event.schemaVersion());
+        assertEquals(0, event.energyQuotaKwh().compareTo(new BigDecimal("500.0000")));
+        assertEquals(0, event.budgetLimit().compareTo(new BigDecimal("1000.00")));
         assertEquals(1, event.appliances().size());
         assertEquals(
                 "Refrigerator",
