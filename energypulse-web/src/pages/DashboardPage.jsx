@@ -36,6 +36,11 @@ const createEmptyAppliance = () => ({
   simulationMaxWatt: "",
 });
 
+const LIVE_POLL_INTERVAL_MS = Math.max(
+  Number(import.meta.env.VITE_LIVE_POLL_INTERVAL_MS) || 2000,
+  1000
+);
+
 const createEmptyHomeForm = () => ({
   name: "",
   contactEmail: "",
@@ -109,51 +114,71 @@ function DashboardPage() {
     setToast({ message, type });
   }, []);
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async ({ background = false } = {}) => {
     try {
-      setError("");
-      setIsRefreshing(true);
+      if (!background) {
+        setError("");
+        setIsRefreshing(true);
+      }
 
       const homesData = await getHomesStatus();
       const safeHomes = Array.isArray(homesData) ? homesData : [];
 
       setHomes((currentHomes) => {
-        const sessionApiHomes = currentHomes.filter(
-          (homeItem) => homeItem.source === "api"
-        );
+        return safeHomes.map((homeItem) => {
+          const currentHome = currentHomes.find(
+            (candidate) => candidate.id === homeItem.id
+          );
 
-        return [
-          ...safeHomes,
-          ...sessionApiHomes.filter(
-            (apiHome) =>
-              !safeHomes.some((homeItem) => homeItem.id === apiHome.id)
-          ),
-        ];
+          return currentHome?.history?.length
+            ? { ...homeItem, history: currentHome.history }
+            : homeItem;
+        });
       });
 
       setSelectedHome((currentHome) => {
-        if (!currentHome || currentHome.source === "api") {
+        if (!currentHome) {
           return currentHome;
         }
 
-        return (
-          safeHomes.find((homeItem) => homeItem.id === currentHome.id) ||
-          currentHome
+        const updatedHome = safeHomes.find(
+          (homeItem) => homeItem.id === currentHome.id
         );
+
+        if (!updatedHome) {
+          return currentHome;
+        }
+
+        return currentHome.history?.length
+          ? { ...updatedHome, history: currentHome.history }
+          : updatedHome;
       });
 
       setLastUpdated(new Date());
     } catch (loadError) {
       console.error(loadError);
-      setError("Dashboard data could not be loaded.");
+      if (!background) {
+        setError("Dashboard data could not be loaded.");
+      }
     } finally {
-      setIsRefreshing(false);
+      if (!background) {
+        setIsRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    const loadTimer = window.setTimeout(loadDashboard, 0);
-    return () => window.clearTimeout(loadTimer);
+    const loadTimer = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+    const pollTimer = window.setInterval(() => {
+      void loadDashboard({ background: true });
+    }, LIVE_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearTimeout(loadTimer);
+      window.clearInterval(pollTimer);
+    };
   }, [loadDashboard]);
 
   useEffect(() => {
@@ -550,7 +575,7 @@ function DashboardPage() {
                       </strong>
                     </div>
                     <div>
-                      <span>Daily Usage</span>
+                      <span>Total Usage</span>
                       <strong>
                         {Number(homeItem.dailyKwh || 0).toFixed(1)} kWh
                       </strong>
@@ -886,7 +911,7 @@ function DashboardPage() {
                 </strong>
               </div>
               <div>
-                <span>Daily Usage</span>
+                <span>Total Usage</span>
                 <strong>
                   {Number(selectedHome.dailyKwh || 0).toFixed(1)} kWh
                 </strong>

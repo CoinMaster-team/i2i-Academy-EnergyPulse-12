@@ -1,10 +1,11 @@
-import { mockHomes } from "../data/mockEnergyData";
-
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
 ).replace(/\/$/, "");
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const numberOrZero = (value) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
+};
 
 export class ApiError extends Error {
   constructor(message, details = {}) {
@@ -54,9 +55,49 @@ async function request(path, options = {}) {
   return payload;
 }
 
+export function normalizeLiveHome(home = {}) {
+  const appliances = Array.isArray(home.appliances) ? home.appliances : [];
+
+  return {
+    id: home.homeId,
+    name: home.name || "Unnamed home",
+    status: String(home.status || "NORMAL").toUpperCase(),
+    monthlyBudget: numberOrZero(home.budgetLimit),
+    currentCost: numberOrZero(home.accumulatedCost),
+    budgetPercentage: numberOrZero(home.budgetPercentage),
+    totalPowerWatts: numberOrZero(home.totalPowerWatts),
+    dailyKwh: numberOrZero(home.accumulatedEnergyKwh),
+    quotaPercentage: numberOrZero(home.quotaPercentage),
+    source: "api",
+    devices: appliances.map((appliance) => {
+      const status = String(appliance.status || "NORMAL").toUpperCase();
+      const currentWatt = numberOrZero(appliance.currentWatt);
+      const safeLimitWatt = numberOrZero(appliance.safeLimitWatt);
+
+      return {
+        id: appliance.applianceId,
+        name: appliance.name || "Unnamed device",
+        powerWatts: currentWatt,
+        safeLimitWatt,
+        usagePercentage: numberOrZero(appliance.usagePercentage),
+        status,
+        measuredAt: appliance.measuredAt || null,
+        anomalyReason:
+          status === "ANOMALY"
+            ? `Power remained above the ${safeLimitWatt.toLocaleString()} W safe limit.`
+            : undefined,
+      };
+    }),
+    history: [],
+    updatedAt: home.updatedAt || null,
+  };
+}
+
 export async function getHomesStatus() {
-  await wait(350);
-  return JSON.parse(JSON.stringify(mockHomes));
+  const payload = await request("/api/telemetry/live");
+  const homes = Array.isArray(payload) ? payload : payload?.homes;
+
+  return Array.isArray(homes) ? homes.map(normalizeLiveHome) : [];
 }
 
 export function createHome(homeRequest) {
