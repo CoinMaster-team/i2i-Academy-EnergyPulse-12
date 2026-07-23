@@ -1,6 +1,7 @@
 package com.coinmaster.energypulse.home.service;
 
 import com.coinmaster.energypulse.common.exception.BusinessRuleException;
+import com.coinmaster.energypulse.common.exception.ResourceNotFoundException;
 import com.coinmaster.energypulse.home.domain.Home;
 import com.coinmaster.energypulse.home.dto.CreateApplianceRequest;
 import com.coinmaster.energypulse.home.dto.CreateHomeRequest;
@@ -64,6 +65,41 @@ public class HomeService {
         return homeMapper.toResponse(savedHome);
     }
 
+    @Transactional
+    public HomeResponse addAppliance(
+            UUID homeId,
+            CreateApplianceRequest request) {
+        Home home = homeRepository.findById(homeId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "HOME_NOT_FOUND",
+                        "Home not found: " + homeId));
+
+        validateApplianceRange(request);
+
+        String normalizedName = normalizeApplianceName(request.name());
+        boolean duplicateName = home.getAppliances()
+                .stream()
+                .map(appliance -> normalizeApplianceName(appliance.getName()))
+                .anyMatch(normalizedName::equals);
+
+        if (duplicateName) {
+            throw new BusinessRuleException(
+                    "DUPLICATE_APPLIANCE_NAME",
+                    "Appliance names must be unique within a home.");
+        }
+
+        home.addAppliance(
+                request.name(),
+                request.safeLimitWatt(),
+                request.simulationMinWatt(),
+                request.simulationMaxWatt());
+
+        Home savedHome = homeRepository.saveAndFlush(home);
+        registrationPublisher.publish(createRegistrationEvent(savedHome));
+
+        return homeMapper.toResponse(savedHome);
+    }
+
     private void validateTariffs(CreateHomeRequest request) {
         if (request.penaltyTariff().compareTo(request.baseTariff()) <= 0) {
             throw new BusinessRuleException(
@@ -76,14 +112,9 @@ public class HomeService {
         Set<String> applianceNames = new HashSet<>();
 
         for (CreateApplianceRequest appliance : appliances) {
-            if (appliance.simulationMaxWatt()
-                    .compareTo(appliance.simulationMinWatt()) <= 0) {
-                throw new BusinessRuleException(
-                        "INVALID_SIMULATION_RANGE",
-                        "Simulation maximum watt must be greater than minimum watt.");
-            }
+            validateApplianceRange(appliance);
 
-            String normalizedName = appliance.name().trim().toLowerCase(Locale.ROOT);
+            String normalizedName = normalizeApplianceName(appliance.name());
 
             if (!applianceNames.add(normalizedName)) {
                 throw new BusinessRuleException(
@@ -91,6 +122,19 @@ public class HomeService {
                         "Appliance names must be unique within a home.");
             }
         }
+    }
+
+    private void validateApplianceRange(CreateApplianceRequest appliance) {
+        if (appliance.simulationMaxWatt()
+                .compareTo(appliance.simulationMinWatt()) <= 0) {
+            throw new BusinessRuleException(
+                    "INVALID_SIMULATION_RANGE",
+                    "Simulation maximum watt must be greater than minimum watt.");
+        }
+    }
+
+    private String normalizeApplianceName(String name) {
+        return name.trim().toLowerCase(Locale.ROOT);
     }
 
     private HomeRegistrationEvent createRegistrationEvent(Home home) {

@@ -80,6 +80,12 @@ cd .\energypulse-core
 .\mvnw.cmd spring-boot:run
 ```
 
+### Optional Demo Data
+
+Set `DEMO_DATA_ENABLED=true` in the local `.env` file to create `Home A` and
+`Home B` when the database is empty. Each demo home includes three appliances
+and seven days of consumption history. Existing homes are never replaced.
+
 ## API Documentation
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
@@ -124,6 +130,14 @@ Optional date range:
 ```http
 GET /api/homes/{homeId}/consumption-history?from=2026-07-19&to=2026-07-21
 ```
+
+### Add an Appliance
+
+```http
+POST /api/homes/{homeId}/appliances
+```
+
+The endpoint persists the appliance and republishes the updated home topology.
 
 ## Kafka Topics
 
