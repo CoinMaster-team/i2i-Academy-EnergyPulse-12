@@ -21,12 +21,14 @@ import {
 
 import {
   ApiError,
+  addAppliance,
   createHome,
   getConsumptionHistory,
   getHomesStatus,
 } from "../services/energyService";
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardNavigation from "../components/DashboardNavigation";
+import { normalizeHistory } from "../utils/consumptionHistory";
 import "../App.css";
 
 const createEmptyAppliance = () => ({
@@ -49,6 +51,13 @@ const createEmptyHomeForm = () => ({
   baseTariff: "",
   penaltyTariff: "",
   appliances: [createEmptyAppliance()],
+});
+
+const createEmptyDeviceForm = () => ({
+  name: "",
+  safeLimitWatt: "",
+  simulationMinWatt: "",
+  simulationMaxWatt: "",
 });
 
 function normalizeCreatedHome(homeResponse) {
@@ -75,18 +84,6 @@ function normalizeCreatedHome(homeResponse) {
   };
 }
 
-function normalizeHistory(historyResponse) {
-  return (historyResponse || []).map((entry) => ({
-    day: new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(`${entry.date}T00:00:00Z`)),
-    date: entry.date,
-    kwh: Number(entry.totalEnergyKwh || 0),
-    cost: Number(entry.totalCost || 0),
-  }));
-}
-
 function DashboardPage() {
   const [homes, setHomes] = useState([]);
   const [selectedHome, setSelectedHome] = useState(null);
@@ -99,16 +96,13 @@ function DashboardPage() {
   const [isWarningPanelOpen, setIsWarningPanelOpen] = useState(false);
   const [isHomeFormOpen, setIsHomeFormOpen] = useState(false);
   const [isCreatingHome, setIsCreatingHome] = useState(false);
+  const [isAddingDevice, setIsAddingDevice] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [homeForm, setHomeForm] = useState(createEmptyHomeForm);
   const [homeFormErrors, setHomeFormErrors] = useState({});
 
-  const [newDevice, setNewDevice] = useState({
-    name: "",
-    powerWatts: "",
-    status: "NORMAL",
-  });
+  const [newDevice, setNewDevice] = useState(createEmptyDeviceForm);
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -253,12 +247,9 @@ function DashboardPage() {
       setHistoryError("");
       const historyResponse = await getConsumptionHistory(homeItem.id);
       const history = normalizeHistory(historyResponse);
-      const latestDay = history.at(-1);
       const updatedHome = {
         ...homeItem,
         history,
-        dailyKwh: latestDay?.kwh ?? homeItem.dailyKwh,
-        currentCost: latestDay?.cost ?? homeItem.currentCost,
       };
 
       setSelectedHome((currentHome) =>
@@ -280,7 +271,7 @@ function DashboardPage() {
     setSelectedHome(homeItem);
     setIsDeviceFormOpen(false);
     setHistoryError("");
-    setNewDevice({ name: "", powerWatts: "", status: "NORMAL" });
+    setNewDevice(createEmptyDeviceForm());
     void loadHistory(homeItem);
   };
 
@@ -288,7 +279,7 @@ function DashboardPage() {
     setSelectedHome(null);
     setIsDeviceFormOpen(false);
     setHistoryError("");
-    setNewDevice({ name: "", powerWatts: "", status: "NORMAL" });
+    setNewDevice(createEmptyDeviceForm());
   };
 
   const openHomeForm = () => {
@@ -426,45 +417,60 @@ function DashboardPage() {
     setNewDevice((currentDevice) => ({ ...currentDevice, [name]: value }));
   };
 
-  const handleAddDevice = (event) => {
+  const handleAddDevice = async (event) => {
     event.preventDefault();
 
-    if (!selectedHome) {
+    if (!selectedHome || isAddingDevice) {
       return;
     }
 
     const deviceName = newDevice.name.trim();
-    const devicePower = Number(newDevice.powerWatts);
+    const safeLimitWatt = Number(newDevice.safeLimitWatt);
+    const simulationMinWatt = Number(newDevice.simulationMinWatt);
+    const simulationMaxWatt = Number(newDevice.simulationMaxWatt);
 
-    if (!deviceName || devicePower <= 0) {
-      setError("Please enter a valid device name and power value.");
+    if (
+      !deviceName ||
+      safeLimitWatt <= 0 ||
+      simulationMinWatt < 0 ||
+      simulationMaxWatt <= simulationMinWatt
+    ) {
+      showToast(
+        "Enter a valid device name, limit and simulation range.",
+        "error"
+      );
       return;
     }
 
-    const deviceToAdd = {
-      id: Date.now(),
-      name: deviceName,
-      powerWatts: devicePower,
-      status: newDevice.status,
-    };
-    const updatedSelectedHome = {
-      ...selectedHome,
-      devices: [...(selectedHome.devices || []), deviceToAdd],
-      totalPowerWatts:
-        Number(selectedHome.totalPowerWatts || 0) + devicePower,
-      status:
-        newDevice.status === "NORMAL" ? selectedHome.status : "WARNING",
-    };
+    try {
+      setIsAddingDevice(true);
+      const homeResponse = await addAppliance(selectedHome.id, {
+        name: deviceName,
+        safeLimitWatt,
+        simulationMinWatt,
+        simulationMaxWatt,
+      });
+      const persistedHome = normalizeCreatedHome(homeResponse);
+      const updatedSelectedHome = {
+        ...selectedHome,
+        devices: persistedHome.devices,
+      };
 
-    setHomes((currentHomes) =>
-      currentHomes.map((homeItem) =>
-        homeItem.id === selectedHome.id ? updatedSelectedHome : homeItem
-      )
-    );
-    setSelectedHome(updatedSelectedHome);
-    setNewDevice({ name: "", powerWatts: "", status: "NORMAL" });
-    setIsDeviceFormOpen(false);
-    setError("");
+      setHomes((currentHomes) =>
+        currentHomes.map((homeItem) =>
+          homeItem.id === selectedHome.id ? updatedSelectedHome : homeItem
+        )
+      );
+      setSelectedHome(updatedSelectedHome);
+      setNewDevice(createEmptyDeviceForm());
+      setIsDeviceFormOpen(false);
+      showToast(`${deviceName} was added successfully.`);
+      await loadDashboard({ background: true });
+    } catch (addDeviceError) {
+      showToast(addDeviceError.message, "error");
+    } finally {
+      setIsAddingDevice(false);
+    }
   };
 
   return (
@@ -932,7 +938,7 @@ function DashboardPage() {
               <div className="chart-heading">
                 <div>
                   <h3>Weekly Consumption</h3>
-                  <p>Daily energy usage and cost for the selected home</p>
+                  <p>Daily usage and cost, calculated from cumulative readings</p>
                 </div>
               </div>
 
@@ -952,18 +958,41 @@ function DashboardPage() {
                     <BarChart data={selectedHome.history || []}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="day" axisLine={false} tickLine={false} />
-                      <YAxis axisLine={false} tickLine={false} width={38} />
-                      <Tooltip />
+                      <YAxis
+                        yAxisId="energy"
+                        axisLine={false}
+                        tickLine={false}
+                        width={58}
+                        tickFormatter={(value) => `${value} kWh`}
+                      />
+                      <YAxis
+                        yAxisId="cost"
+                        orientation="right"
+                        axisLine={false}
+                        tickLine={false}
+                        width={48}
+                        tickFormatter={(value) => `₺${value}`}
+                      />
+                      <Tooltip
+                        formatter={(value, name) => [
+                          name === "Energy (kWh)"
+                            ? `${Number(value).toFixed(2)} kWh`
+                            : `₺${Number(value).toFixed(2)}`,
+                          name,
+                        ]}
+                      />
                       <Legend />
                       <Bar
+                        yAxisId="energy"
                         dataKey="kwh"
                         name="Energy (kWh)"
                         fill="#2563eb"
                         radius={[6, 6, 0, 0]}
                       />
                       <Bar
+                        yAxisId="cost"
                         dataKey="cost"
-                        name="Cost"
+                        name="Cost (₺)"
                         fill="#93c5fd"
                         radius={[6, 6, 0, 0]}
                       />
@@ -1011,30 +1040,47 @@ function DashboardPage() {
                     />
                   </label>
                   <label>
-                    Power
+                    Power Limit
                     <input
                       type="number"
-                      name="powerWatts"
-                      value={newDevice.powerWatts}
+                      name="safeLimitWatt"
+                      value={newDevice.safeLimitWatt}
                       onChange={handleDeviceInputChange}
                       placeholder="Watts"
-                      min="1"
+                      min="0.01"
+                      step="0.01"
                       required
                     />
                   </label>
                   <label>
-                    Status
-                    <select
-                      name="status"
-                      value={newDevice.status}
+                    Min Power
+                    <input
+                      type="number"
+                      name="simulationMinWatt"
+                      value={newDevice.simulationMinWatt}
                       onChange={handleDeviceInputChange}
-                    >
-                      <option value="NORMAL">Normal</option>
-                      <option value="WARNING">Warning</option>
-                      <option value="ANOMALY">Anomaly</option>
-                    </select>
+                      placeholder="Watts"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
                   </label>
-                  <button type="submit">Save Device</button>
+                  <label>
+                    Max Power
+                    <input
+                      type="number"
+                      name="simulationMaxWatt"
+                      value={newDevice.simulationMaxWatt}
+                      onChange={handleDeviceInputChange}
+                      placeholder="Watts"
+                      min="0.01"
+                      step="0.01"
+                      required
+                    />
+                  </label>
+                  <button type="submit" disabled={isAddingDevice}>
+                    {isAddingDevice ? "Saving..." : "Save Device"}
+                  </button>
                 </form>
               )}
 
