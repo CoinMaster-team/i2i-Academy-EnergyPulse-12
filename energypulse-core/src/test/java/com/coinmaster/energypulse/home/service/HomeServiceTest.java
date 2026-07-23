@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -44,6 +45,42 @@ class HomeServiceTest {
 
     @InjectMocks
     private HomeService homeService;
+
+    @Test
+    void shouldRepublishAllPersistedHomeTopologies() {
+        Home homeA = new Home(
+                "Home A",
+                "home-a@energypulse.com",
+                new BigDecimal("500.0000"),
+                new BigDecimal("1000.00"),
+                new BigDecimal("2.000000"),
+                new BigDecimal("4.000000"));
+        Home homeB = new Home(
+                "Home B",
+                "home-b@energypulse.com",
+                new BigDecimal("400.0000"),
+                new BigDecimal("800.00"),
+                new BigDecimal("2.000000"),
+                new BigDecimal("4.000000"));
+        homeA.addAppliance(
+                "Refrigerator",
+                new BigDecimal("500.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("450.00"));
+        homeB.addAppliance(
+                "Television",
+                new BigDecimal("400.00"),
+                new BigDecimal("80.00"),
+                new BigDecimal("280.00"));
+
+        when(homeRepository.findAll()).thenReturn(List.of(homeA, homeB));
+
+        int publishedCount = homeService.publishAllHomeTopologies();
+
+        assertEquals(2, publishedCount);
+        verify(registrationPublisher, times(2))
+                .publish(any(HomeRegistrationEvent.class));
+    }
 
     @Test
     void shouldCreateHomeAndPublishRegistrationEvent() {

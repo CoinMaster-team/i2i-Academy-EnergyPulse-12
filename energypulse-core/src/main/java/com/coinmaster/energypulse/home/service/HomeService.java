@@ -160,4 +160,13 @@ public class HomeService {
                 home.getAccumulatedCost(),
                 applianceEvents);
     }
+
+    @Transactional(readOnly = true)
+    public int publishAllHomeTopologies() {
+        List<Home> homes = homeRepository.findAll();
+        homes.stream()
+                .map(this::createRegistrationEvent)
+                .forEach(registrationPublisher::publish);
+        return homes.size();
+    }
 }
