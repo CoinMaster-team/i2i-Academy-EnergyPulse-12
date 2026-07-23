@@ -80,6 +80,18 @@ cd .\energypulse-core
 .\mvnw.cmd spring-boot:run
 ```
 
+Run the web application in a second terminal:
+
+```powershell
+cd .\energypulse-web
+npm install
+npm run dev
+```
+
+The web application uses `http://localhost:8080` by default. Set
+`VITE_API_BASE_URL` before starting Vite when the backend runs at another
+address.
+
 ## API Documentation
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
@@ -124,6 +136,37 @@ Optional date range:
 ```http
 GET /api/homes/{homeId}/consumption-history?from=2026-07-19&to=2026-07-21
 ```
+
+### List Notifications
+
+```http
+GET /api/notifications
+GET /api/notifications/{notificationId}
+```
+
+The notification console is available at `http://localhost:5173/notifications`.
+
+## AI and Email Notifications
+
+Energy events are converted into Turkish Gemini recommendations and delivered
+to the home's contact email. If Gemini is unavailable, EnergyPulse stores and
+sends a safe Turkish fallback recommendation.
+
+Set these values in the local `.env` file:
+
+```dotenv
+GEMINI_API_KEY=your-local-api-key
+GEMINI_MODEL=gemini-3.5-flash
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-smtp-username
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM=energypulse@example.com
+NOTIFICATION_PROCESSING_ENABLED=true
+```
+
+Keep `NOTIFICATION_PROCESSING_ENABLED=false` until the credentials are ready.
+Never commit real Gemini or SMTP credentials.
 
 ## Kafka Topics
 
@@ -197,10 +240,10 @@ Streaming team:
 
 Web team:
 
-- Replace mock data with backend API calls
-- Use the history endpoint for charts
-- Poll the future live status endpoint
-- Display backend validation errors safely
+- Dashboard, history charts, home registration and notification APIs are connected
+- Backend validation errors are displayed safely
+- Switch dashboard polling to the streaming team's live-status endpoint after that endpoint is delivered
+- Verify the complete anomaly → Gemini → email → notification flow during final integration
 
 ## Security
 
