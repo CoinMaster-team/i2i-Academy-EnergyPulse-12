@@ -1,4 +1,4 @@
-package com.coinmaster.energypulse.home.event;
+package com.coinmaster.energypulse.simulator.event;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

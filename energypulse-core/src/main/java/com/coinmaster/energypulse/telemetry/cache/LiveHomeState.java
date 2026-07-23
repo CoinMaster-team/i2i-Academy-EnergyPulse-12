@@ -1,23 +1,24 @@
-package com.coinmaster.energypulse.home.event;
+package com.coinmaster.energypulse.telemetry.cache;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public record HomeRegistrationEvent(
-        UUID eventId,
-        int schemaVersion,
-        OffsetDateTime occurredAt,
+public record LiveHomeState(
         UUID homeId,
-        String homeName,
+        String name,
         BigDecimal energyQuotaKwh,
         BigDecimal budgetLimit,
         BigDecimal accumulatedEnergyKwh,
         BigDecimal accumulatedCost,
-        List<ApplianceRegistrationEvent> appliances) {
+        BigDecimal totalPowerWatts,
+        String status,
+        List<LiveApplianceState> appliances,
+        OffsetDateTime updatedAt) implements Serializable {
 
-    public HomeRegistrationEvent {
+    public LiveHomeState {
         appliances = List.copyOf(appliances);
     }
 }
