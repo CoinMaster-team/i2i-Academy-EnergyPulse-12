@@ -107,6 +107,13 @@ export function createHome(homeRequest) {
   });
 }
 
+export function addAppliance(homeId, applianceRequest) {
+  return request(`/api/homes/${encodeURIComponent(homeId)}/appliances`, {
+    method: "POST",
+    body: JSON.stringify(applianceRequest),
+  });
+}
+
 export function getConsumptionHistory(homeId, dateRange = {}) {
   const searchParams = new URLSearchParams();
 
