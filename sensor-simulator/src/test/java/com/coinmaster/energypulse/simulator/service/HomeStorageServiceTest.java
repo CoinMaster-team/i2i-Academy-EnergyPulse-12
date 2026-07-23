@@ -3,6 +3,7 @@ package com.coinmaster.energypulse.simulator.service;
 import com.coinmaster.energypulse.simulator.event.HomeRegistrationEvent;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,10 @@ class HomeStorageServiceTest {
                 OffsetDateTime.now(),
                 homeId,
                 homeName,
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 List.of());
     }
 }

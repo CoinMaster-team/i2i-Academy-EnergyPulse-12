@@ -63,6 +63,7 @@ class TelemetryProcessingServiceTest {
                 .thenReturn(new BigDecimal("79.9"));
         when(home.getAccumulatedCost()).thenReturn(BigDecimal.ZERO);
         when(home.getEnergyQuotaKwh()).thenReturn(new BigDecimal("100"));
+        when(home.getBudgetLimit()).thenReturn(new BigDecimal("100"));
         when(home.getBaseTariff()).thenReturn(new BigDecimal("2.5"));
         when(home.getPenaltyTariff()).thenReturn(new BigDecimal("4"));
         when(appliance.getId()).thenReturn(applianceId);
@@ -73,7 +74,11 @@ class TelemetryProcessingServiceTest {
                 eq(event),
                 eq("Test home"),
                 eq("Heater"),
-                eq(new BigDecimal("200000"))))
+                eq(new BigDecimal("200000")),
+                eq(new BigDecimal("100")),
+                eq(new BigDecimal("100")),
+                eq(new BigDecimal("79.9")),
+                eq(BigDecimal.ZERO)))
                 .thenReturn(new LiveTelemetryUpdate(
                         true,
                         null,
@@ -129,6 +134,10 @@ class TelemetryProcessingServiceTest {
         assertThat(processed).isFalse();
         verify(homeRepository, never()).findById(any());
         verify(liveTelemetryService, never()).recordTelemetry(
+                any(),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),

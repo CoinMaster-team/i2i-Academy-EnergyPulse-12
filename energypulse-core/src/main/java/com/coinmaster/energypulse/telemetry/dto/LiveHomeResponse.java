@@ -8,6 +8,12 @@ import java.util.UUID;
 public record LiveHomeResponse(
         UUID homeId,
         String name,
+        BigDecimal energyQuotaKwh,
+        BigDecimal budgetLimit,
+        BigDecimal accumulatedEnergyKwh,
+        BigDecimal accumulatedCost,
+        BigDecimal quotaPercentage,
+        BigDecimal budgetPercentage,
         BigDecimal totalPowerWatts,
         String status,
         List<LiveApplianceResponse> appliances,

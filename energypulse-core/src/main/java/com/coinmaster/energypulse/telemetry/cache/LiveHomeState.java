@@ -9,6 +9,10 @@ import java.util.UUID;
 public record LiveHomeState(
         UUID homeId,
         String name,
+        BigDecimal energyQuotaKwh,
+        BigDecimal budgetLimit,
+        BigDecimal accumulatedEnergyKwh,
+        BigDecimal accumulatedCost,
         BigDecimal totalPowerWatts,
         String status,
         List<LiveApplianceState> appliances,

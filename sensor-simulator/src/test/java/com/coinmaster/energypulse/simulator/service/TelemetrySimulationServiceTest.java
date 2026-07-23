@@ -32,6 +32,10 @@ class TelemetrySimulationServiceTest {
                 OffsetDateTime.now(),
                 homeId,
                 "Test home",
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 List.of(new ApplianceRegistrationEvent(
                         applianceId,
                         "Kettle",

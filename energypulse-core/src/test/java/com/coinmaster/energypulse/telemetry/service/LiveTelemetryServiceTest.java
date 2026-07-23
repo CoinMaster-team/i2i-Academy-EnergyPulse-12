@@ -32,6 +32,10 @@ class LiveTelemetryServiceTest {
                 startedAt,
                 homeId,
                 "Test home",
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 List.of(new ApplianceRegistrationEvent(
                         applianceId,
                         "Kettle",
@@ -95,12 +99,20 @@ class LiveTelemetryServiceTest {
                 event,
                 "Home",
                 "Device",
-                new BigDecimal("500"));
+                new BigDecimal("500"),
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO);
         LiveTelemetryUpdate duplicate = service.recordTelemetry(
                 event,
                 "Home",
                 "Device",
-                new BigDecimal("500"));
+                new BigDecimal("500"),
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO);
 
         assertThat(first.accepted()).isTrue();
         assertThat(duplicate.accepted()).isFalse();
@@ -121,6 +133,10 @@ class LiveTelemetryServiceTest {
                         new BigDecimal(currentWatt)),
                 "Test home",
                 "Kettle",
-                new BigDecimal("1000"));
+                new BigDecimal("1000"),
+                new BigDecimal("100"),
+                new BigDecimal("500"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO);
     }
 }

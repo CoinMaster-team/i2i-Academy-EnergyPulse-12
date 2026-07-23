@@ -110,6 +110,10 @@ public class HomeService {
                 OffsetDateTime.now(ZoneOffset.UTC),
                 home.getId(),
                 home.getName(),
+                home.getEnergyQuotaKwh(),
+                home.getBudgetLimit(),
+                home.getAccumulatedEnergyKwh(),
+                home.getAccumulatedCost(),
                 applianceEvents);
     }
 }

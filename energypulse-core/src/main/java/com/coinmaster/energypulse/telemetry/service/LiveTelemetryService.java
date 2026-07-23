@@ -46,6 +46,10 @@ public class LiveTelemetryService {
         store.save(new LiveHomeState(
                 event.homeId(),
                 event.homeName(),
+                event.energyQuotaKwh(),
+                event.budgetLimit(),
+                event.accumulatedEnergyKwh(),
+                event.accumulatedCost(),
                 totalPower(appliances),
                 homeStatus(appliances),
                 appliances,
@@ -56,9 +60,19 @@ public class LiveTelemetryService {
             TelemetryEvent event,
             String homeName,
             String applianceName,
-            BigDecimal safeLimitWatt) {
+            BigDecimal safeLimitWatt,
+            BigDecimal energyQuotaKwh,
+            BigDecimal budgetLimit,
+            BigDecimal accumulatedEnergyKwh,
+            BigDecimal accumulatedCost) {
         LiveHomeState home = store.findHome(event.homeId())
-                .orElseGet(() -> emptyHome(event.homeId(), homeName));
+                .orElseGet(() -> emptyHome(
+                        event.homeId(),
+                        homeName,
+                        energyQuotaKwh,
+                        budgetLimit,
+                        accumulatedEnergyKwh,
+                        accumulatedCost));
         List<LiveApplianceState> appliances = new ArrayList<>(home.appliances());
         int applianceIndex = findApplianceIndex(appliances, event.applianceId());
         LiveApplianceState previous = applianceIndex >= 0
@@ -98,6 +112,10 @@ public class LiveTelemetryService {
         store.save(new LiveHomeState(
                 event.homeId(),
                 homeName,
+                home.energyQuotaKwh(),
+                home.budgetLimit(),
+                home.accumulatedEnergyKwh(),
+                home.accumulatedCost(),
                 totalPower(appliances),
                 homeStatus(appliances),
                 appliances,
@@ -107,6 +125,24 @@ public class LiveTelemetryService {
                 true,
                 previous.measuredAt(),
                 evaluation);
+    }
+
+    public void updateAccumulatedUsage(
+            UUID homeId,
+            BigDecimal accumulatedEnergyKwh,
+            BigDecimal accumulatedCost) {
+        store.findHome(homeId).ifPresent(home -> store.save(
+                new LiveHomeState(
+                        home.homeId(),
+                        home.name(),
+                        home.energyQuotaKwh(),
+                        home.budgetLimit(),
+                        accumulatedEnergyKwh,
+                        accumulatedCost,
+                        home.totalPowerWatts(),
+                        home.status(),
+                        home.appliances(),
+                        home.updatedAt())));
     }
 
     public LiveTelemetryResponse getLiveTelemetry() {
@@ -150,10 +186,20 @@ public class LiveTelemetryService {
                         appliance.safeLimitWatt()));
     }
 
-    private LiveHomeState emptyHome(UUID homeId, String homeName) {
+    private LiveHomeState emptyHome(
+            UUID homeId,
+            String homeName,
+            BigDecimal energyQuotaKwh,
+            BigDecimal budgetLimit,
+            BigDecimal accumulatedEnergyKwh,
+            BigDecimal accumulatedCost) {
         return new LiveHomeState(
                 homeId,
                 homeName,
+                energyQuotaKwh,
+                budgetLimit,
+                accumulatedEnergyKwh,
+                accumulatedCost,
                 BigDecimal.ZERO,
                 "NORMAL",
                 List.of(),
@@ -208,6 +254,12 @@ public class LiveTelemetryService {
         return new LiveHomeResponse(
                 home.homeId(),
                 home.name(),
+                home.energyQuotaKwh(),
+                home.budgetLimit(),
+                home.accumulatedEnergyKwh(),
+                home.accumulatedCost(),
+                percentage(home.accumulatedEnergyKwh(), home.energyQuotaKwh()),
+                percentage(home.accumulatedCost(), home.budgetLimit()),
                 home.totalPowerWatts(),
                 home.status(),
                 appliances,
@@ -229,5 +281,17 @@ public class LiveTelemetryService {
                 percentage,
                 appliance.status(),
                 appliance.measuredAt());
+    }
+
+    private BigDecimal percentage(
+            BigDecimal currentValue,
+            BigDecimal limit) {
+        if (limit == null || limit.signum() <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return currentValue
+                .multiply(ONE_HUNDRED)
+                .divide(limit, 2, RoundingMode.HALF_UP);
     }
 }

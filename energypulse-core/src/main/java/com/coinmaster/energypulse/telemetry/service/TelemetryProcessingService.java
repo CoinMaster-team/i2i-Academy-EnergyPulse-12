@@ -76,7 +76,11 @@ public class TelemetryProcessingService {
                 event,
                 home.getName(),
                 appliance.getName(),
-                appliance.getSafeLimitWatt());
+                appliance.getSafeLimitWatt(),
+                home.getEnergyQuotaKwh(),
+                home.getBudgetLimit(),
+                home.getAccumulatedEnergyKwh(),
+                home.getAccumulatedCost());
 
         if (!liveUpdate.accepted()) {
             return false;
@@ -133,6 +137,10 @@ public class TelemetryProcessingService {
         }
 
         home.updateAccumulatedUsage(currentEnergy, currentCost);
+        liveTelemetryService.updateAccumulatedUsage(
+                home.getId(),
+                currentEnergy,
+                currentCost);
         persistQuotaTransitions(
                 event,
                 home,
