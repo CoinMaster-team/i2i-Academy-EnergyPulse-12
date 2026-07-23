@@ -18,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -165,6 +167,56 @@ class HomeServiceTest {
                 registrationPublisher);
     }
 
+    @Test
+    void shouldAddApplianceAndRepublishHomeTopology() {
+        UUID homeId = UUID.randomUUID();
+        Home home = validHome();
+        home.addAppliance(
+                "Refrigerator",
+                new BigDecimal("500.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("450.00"));
+        HomeResponse expectedResponse = mock(HomeResponse.class);
+
+        when(homeRepository.findById(homeId)).thenReturn(Optional.of(home));
+        when(homeRepository.saveAndFlush(home)).thenReturn(home);
+        when(homeMapper.toResponse(home)).thenReturn(expectedResponse);
+
+        HomeResponse actualResponse = homeService.addAppliance(
+                homeId,
+                validAppliance("Washing Machine"));
+
+        assertSame(expectedResponse, actualResponse);
+        assertEquals(2, home.getAppliances().size());
+
+        ArgumentCaptor<HomeRegistrationEvent> eventCaptor =
+                ArgumentCaptor.forClass(HomeRegistrationEvent.class);
+        verify(registrationPublisher).publish(eventCaptor.capture());
+        assertEquals(2, eventCaptor.getValue().appliances().size());
+    }
+
+    @Test
+    void shouldRejectDuplicateApplianceWhenAddingToExistingHome() {
+        UUID homeId = UUID.randomUUID();
+        Home home = validHome();
+        home.addAppliance(
+                "Refrigerator",
+                new BigDecimal("500.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("450.00"));
+
+        when(homeRepository.findById(homeId)).thenReturn(Optional.of(home));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> homeService.addAppliance(
+                        homeId,
+                        validAppliance(" refrigerator ")));
+
+        assertEquals("DUPLICATE_APPLIANCE_NAME", exception.getCode());
+        verifyNoInteractions(homeMapper, registrationPublisher);
+    }
+
     private CreateHomeRequest validRequest() {
         return new CreateHomeRequest(
                 "Test Home",
@@ -184,4 +236,13 @@ class HomeServiceTest {
                 new BigDecimal("650.00"));
     }
 
+    private Home validHome() {
+        return new Home(
+                "Test Home",
+                "test@energypulse.com",
+                new BigDecimal("500.0000"),
+                new BigDecimal("1000.00"),
+                new BigDecimal("2.000000"),
+                new BigDecimal("4.000000"));
+    }
 }
