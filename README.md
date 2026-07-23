@@ -6,29 +6,29 @@ This branch (feature/streaming-engine) specifically contains the high-frequency 
 
 ## Architecture
 
-- **Spring Boot Core: Registration, history, telemetry, billing and notification modules
+- **Spring Boot Core:** Registration, history, telemetry, billing and notification modules
 
-- **PostgreSQL: Permanent home, billing, event and consumption records
+- **PostgreSQL:** Permanent home, billing, event and consumption records
 
-- **Apache Kafka: Registration and telemetry event streaming
+- **Apache Kafka:** Registration and telemetry event streaming
 
-- **Apache Ignite: Live metrics, tariff state and anomaly counters
+- **Apache Ignite:** Live metrics, tariff state and anomaly counters
 
-- **React Web: Dashboard, charts and notifications
+- **React Web:** Dashboard, charts and notifications
 
-- **Sensor Simulator (Standalone): Autonomous scheduled service simulating hardware appliance metrics
+- **Sensor Simulator (Standalone):** Autonomous scheduled service simulating hardware appliance metrics
 
 ## Project Structure
 
+```text
 EnergyPulse/
-├─ core-telemetry-modules/   # Contains Streaming, Rule Engine and Ignite Services
 ├─ database/init/001_schema.sql
 ├─ energypulse-core/
 ├─ energypulse-web/
-├─ sensor-simulator/         # Standalone IoT hardware simulation module
 ├─ .env.example
 ├─ docker-compose.yml
 └─ README.md
+```
 
 ## Requirements
 
