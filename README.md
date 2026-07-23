@@ -85,6 +85,18 @@ cd .\energypulse-core
 .\mvnw.cmd spring-boot:run
 ```
 
+Run the web application in a second terminal:
+
+```powershell
+cd .\energypulse-web
+npm install
+npm run dev
+```
+
+The web application uses `http://localhost:8080` by default. Set
+`VITE_API_BASE_URL` before starting Vite when the backend runs at another
+address.
+
 Run the sensor simulator in another terminal:
 
 ```powershell
@@ -138,6 +150,37 @@ Optional date range:
 ```http
 GET /api/homes/{homeId}/consumption-history?from=2026-07-19&to=2026-07-21
 ```
+
+### List Notifications
+
+```http
+GET /api/notifications
+GET /api/notifications/{notificationId}
+```
+
+The notification console is available at `http://localhost:5173/notifications`.
+
+## AI and Email Notifications
+
+Energy events are converted into Turkish Gemini recommendations and delivered
+to the home's contact email. If Gemini is unavailable, EnergyPulse stores and
+sends a safe Turkish fallback recommendation.
+
+Set these values in the local `.env` file:
+
+```dotenv
+GEMINI_API_KEY=your-local-api-key
+GEMINI_MODEL=gemini-3.5-flash
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-smtp-username
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM=energypulse@example.com
+NOTIFICATION_PROCESSING_ENABLED=true
+```
+
+Keep `NOTIFICATION_PROCESSING_ENABLED=false` until the credentials are ready.
+Never commit real Gemini or SMTP credentials.
 
 ### Get Live Telemetry
 
@@ -193,6 +236,21 @@ cd .\sensor-simulator
 
 All feature work must reach `main` through pull requests without squashing the
 feature commit history.
+
+## Integration Notes
+
+Streaming team:
+
+- `HomeRegistrationPublisher` is backed by Kafka.
+- Telemetry is consumed and cached in Ignite.
+- Live usage and budget metrics are exposed through the telemetry API.
+
+Web team:
+
+- Dashboard, history charts, home registration and notification APIs are connected.
+- Dashboard polling uses the streaming live-status endpoint.
+- Backend validation errors are displayed safely.
+- Verify the complete anomaly → Gemini → email → notification flow during final integration.
 
 ## Security
 
