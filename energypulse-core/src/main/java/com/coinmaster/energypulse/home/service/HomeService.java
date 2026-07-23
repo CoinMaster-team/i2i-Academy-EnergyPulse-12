@@ -64,15 +64,6 @@ public class HomeService {
         return homeMapper.toResponse(savedHome);
     }
 
-    @Transactional(readOnly = true)
-    public int publishAllHomeTopologies() {
-        List<Home> homes = homeRepository.findAll();
-        homes.stream()
-                .map(this::createRegistrationEvent)
-                .forEach(registrationPublisher::publish);
-        return homes.size();
-    }
-
     private void validateTariffs(CreateHomeRequest request) {
         if (request.penaltyTariff().compareTo(request.baseTariff()) <= 0) {
             throw new BusinessRuleException(
@@ -124,5 +115,14 @@ public class HomeService {
                 home.getAccumulatedEnergyKwh(),
                 home.getAccumulatedCost(),
                 applianceEvents);
+    }
+
+    @Transactional(readOnly = true)
+    public int publishAllHomeTopologies() {
+        List<Home> homes = homeRepository.findAll();
+        homes.stream()
+                .map(this::createRegistrationEvent)
+                .forEach(registrationPublisher::publish);
+        return homes.size();
     }
 }
