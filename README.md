@@ -1,22 +1,16 @@
 # EnergyPulse
 
-EnergyPulse is the implementation of the VoltWise Project: a real-time IoT energy monitoring, billing and anomaly detection platform.
-
-This branch (feature/streaming-engine) specifically contains the high-frequency telemetry processing, Kafka event streaming, In-Memory Data Grid (Apache Ignite) integration, rule engine algorithms, and the standalone sensor simulator.
+EnergyPulse is the implementation of the **VoltWise Project**: a real-time IoT
+energy monitoring, billing and anomaly detection platform.
 
 ## Architecture
 
 - **Spring Boot Core:** Registration, history, telemetry, billing and notification modules
-
 - **PostgreSQL:** Permanent home, billing, event and consumption records
-
 - **Apache Kafka:** Registration and telemetry event streaming
-
 - **Apache Ignite:** Live metrics, tariff state and anomaly counters
-
 - **React Web:** Dashboard, charts and notifications
-
-- **Sensor Simulator (Standalone):** Autonomous scheduled service simulating hardware appliance metrics
+- **Sensor Simulator:** Scheduled appliance telemetry generation
 
 ## Project Structure
 
@@ -25,6 +19,7 @@ EnergyPulse/
 ├─ database/init/001_schema.sql
 ├─ energypulse-core/
 ├─ energypulse-web/
+├─ sensor-simulator/
 ├─ .env.example
 ├─ docker-compose.yml
 └─ README.md
@@ -33,13 +28,9 @@ EnergyPulse/
 ## Requirements
 
 - Java 17
-
 - Docker Desktop
-
 - Git
-
 - PowerShell
-
 - Node.js and npm for the web application
 
 ## Local Setup
@@ -47,7 +38,7 @@ EnergyPulse/
 Clone the project:
 
 ```powershell
-git clone [https://github.com/CoinMaster-team/i2i-Academy-EnergyPulse-12.git](https://github.com/CoinMaster-team/i2i-Academy-EnergyPulse-12.git)
+git clone https://github.com/CoinMaster-team/i2i-Academy-EnergyPulse-12.git
 cd i2i-Academy-EnergyPulse-12
 ```
 
@@ -57,9 +48,9 @@ Create the local environment file:
 Copy-Item .env.example .env
 ```
 
-Set a secure local POSTGRES_PASSWORD inside .env. Never commit this file.
+Set a secure local `POSTGRES_PASSWORD` inside `.env`. Never commit this file.
 
-Start infrastructure (Postgres, Kafka, Ignite):
+Start infrastructure:
 
 ```powershell
 docker compose config --quiet
@@ -70,12 +61,9 @@ docker compose ps -a
 Expected services:
 
 - `energypulse-postgres`: healthy
-
 - `energypulse-kafka`: healthy
-
 - `energypulse-ignite`: running
-
-- `energypulse-kafka-init`: exited with code 0
+- `energypulse-kafka-init`: exited with code `0`
 
 Load environment variables:
 
@@ -90,37 +78,29 @@ Get-Content .\.env |
 
 ## Running the Services
 
-1. Run the Backend Core:
+Run the backend core:
 
 ```powershell
 cd .\energypulse-core
 .\mvnw.cmd spring-boot:run
 ```
 
-2. Run the Sensor Simulator (In a new terminal):
-This module listens to new home registrations and autonomously generates high-frequency telemetry data.
+Run the sensor simulator in another terminal:
 
 ```powershell
 cd .\sensor-simulator
 .\mvnw.cmd spring-boot:run
 ```
 
+The simulator listens for registered homes and publishes appliance telemetry.
+
 ## API Documentation
-Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Health: `http://localhost:8080/actuator/health`
 
-Health: `http://localhost:8080/actuator/health`
-
-## Live Telemetry Streaming (Ignite-backed)
-Provides zero-latency, RAM-based real-time data for the frontend dashboard without hitting the PostgreSQL disk.
-
-```http
-GET /api/telemetry/live
-```
-
-## Register a Home
-Triggers a Kafka event (energypulse.home-registration.v1) which the sensor simulator catches to start broadcasting.
+### Register a Home
 
 ```http
 POST /api/homes
@@ -147,6 +127,24 @@ Example:
 }
 ```
 
+### Get Daily Consumption History
+
+```http
+GET /api/homes/{homeId}/consumption-history
+```
+
+Optional date range:
+
+```http
+GET /api/homes/{homeId}/consumption-history?from=2026-07-19&to=2026-07-21
+```
+
+### Get Live Telemetry
+
+```http
+GET /api/telemetry/live
+```
+
 ## Kafka Topics
 
 | Topic | Purpose |
@@ -165,6 +163,25 @@ PostgreSQL contains:
 - `operational_events`
 - `ai_notifications`
 
+List tables:
+
+```powershell
+docker exec energypulse-postgres `
+    psql -U energypulse -d energypulse -c "\dt"
+```
+
+## Tests
+
+```powershell
+cd .\energypulse-core
+.\mvnw.cmd clean test
+```
+
+```powershell
+cd .\sensor-simulator
+.\mvnw.cmd clean test
+```
+
 ## Branch Strategy
 
 | Branch | Responsibility |
@@ -174,23 +191,8 @@ PostgreSQL contains:
 | `feature/streaming-engine` | Kafka, sensors, Ignite and live data |
 | `feature/web-notifications` | Frontend and notifications |
 
-All feature work must reach `main` through pull requests.
-
-## Integration Notes
-
-Streaming team:
-
-- Implement `HomeRegistrationPublisher`
-- Replace `LoggingHomeRegistrationPublisher`
-- Consume telemetry and update Ignite
-- Provide the Ignite-backed live status endpoint
-
-Web team:
-
-- Dashboard, history charts, home registration and notification APIs are connected
-- Backend validation errors are displayed safely
-- Switch dashboard polling to the streaming team's live-status endpoint after that endpoint is delivered
-- Verify the complete anomaly → Gemini → email → notification flow during final integration
+All feature work must reach `main` through pull requests without squashing the
+feature commit history.
 
 ## Security
 
@@ -198,7 +200,3 @@ Web team:
 - Never hardcode passwords or API keys
 - Keep PostgreSQL as the permanent source of truth
 - Do not return raw stack traces to clients
-
-
-
-
