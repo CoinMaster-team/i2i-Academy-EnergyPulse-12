@@ -1763,6 +1763,12 @@ select:focus-visible {
   color: var(--danger-700);
 }
 
+.notification-detail-errors.warning {
+  border-color: var(--warning-200);
+  background: var(--warning-50);
+  color: var(--warning-700);
+}
+
 .notification-detail-errors p {
   margin: 0;
   font-size: 12px;

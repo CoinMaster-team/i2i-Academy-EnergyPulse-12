@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildNotificationEmail } from "./notificationEmail.js";
+import {
+  buildNotificationEmail,
+  getFriendlyAiNotice,
+} from "./notificationEmail.js";
 
 test("builds the complete generated email content", () => {
   const email = buildNotificationEmail({
@@ -40,4 +43,31 @@ test("builds the fallback email content for a home-level event", () => {
     email.body,
     /Gemini servisine ulaşılamadığı için güvenli varsayılan öneri kullanıldı\./
   );
+});
+
+test("turns a raw Gemini 503 response into a friendly notice", () => {
+  const notice = getFriendlyAiNotice({
+    generationStatus: "FALLBACK",
+    generationError:
+      '503 Service Unavailable: {"status":"UNAVAILABLE","message":"This model is currently experiencing high demand."}',
+  });
+
+  assert.equal(
+    notice,
+    "Gemini geçici olarak yoğun olduğu için güvenli varsayılan öneri kullanıldı."
+  );
+  assert.doesNotMatch(notice, /503|json|unavailable/i);
+});
+
+test("uses a safe generic notice without exposing unknown technical errors", () => {
+  const notice = getFriendlyAiNotice({
+    generationStatus: "FALLBACK",
+    generationError: "internal-provider-stack-trace",
+  });
+
+  assert.equal(
+    notice,
+    "Gemini öneri oluşturamadığı için güvenli varsayılan öneri kullanıldı."
+  );
+  assert.doesNotMatch(notice, /stack|internal/i);
 });

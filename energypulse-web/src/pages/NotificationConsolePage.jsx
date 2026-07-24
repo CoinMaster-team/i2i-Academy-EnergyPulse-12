@@ -13,7 +13,10 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardNavigation from "../components/DashboardNavigation";
 import { getNotifications } from "../services/energyService";
-import { buildNotificationEmail } from "../utils/notificationEmail";
+import {
+  buildNotificationEmail,
+  getFriendlyAiNotice,
+} from "../utils/notificationEmail";
 import "../App.css";
 
 const ALL_FILTER = "ALL";
@@ -466,9 +469,19 @@ function NotificationConsolePage() {
             </dl>
 
             {(selectedNotification.generationError || selectedNotification.emailError) && (
-              <div className="notification-detail-errors">
+              <div
+                className={`notification-detail-errors ${
+                  selectedNotification.generationError &&
+                  !selectedNotification.emailError
+                    ? "warning"
+                    : ""
+                }`}
+              >
                 {selectedNotification.generationError && (
-                  <p><strong>AI error:</strong> {selectedNotification.generationError}</p>
+                  <p>
+                    <strong>AI notice:</strong>{" "}
+                    {getFriendlyAiNotice(selectedNotification)}
+                  </p>
                 )}
                 {selectedNotification.emailError && (
                   <p><strong>Email error:</strong> {selectedNotification.emailError}</p>
