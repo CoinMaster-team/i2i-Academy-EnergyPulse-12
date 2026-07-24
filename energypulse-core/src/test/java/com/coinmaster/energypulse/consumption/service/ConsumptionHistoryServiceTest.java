@@ -46,6 +46,11 @@ class ConsumptionHistoryServiceTest {
         List<ConsumptionSnapshot> snapshots = List.of(
                 snapshot(
                         home,
+                        "10.000000",
+                        "25.000000",
+                        "2026-07-18T18:00:00Z"),
+                snapshot(
+                        home,
                         "12.500000",
                         "31.250000",
                         "2026-07-19T18:00:00Z"),
@@ -71,7 +76,7 @@ class ConsumptionHistoryServiceTest {
         when(snapshotRepository
                 .findAllByHome_IdAndCapturedAtGreaterThanEqualAndCapturedAtLessThanOrderByCapturedAtAsc(
                         HOME_ID,
-                        OffsetDateTime.parse("2026-07-19T00:00:00Z"),
+                        OffsetDateTime.parse("2026-07-18T00:00:00Z"),
                         OffsetDateTime.parse("2026-07-22T00:00:00Z")))
                 .thenReturn(snapshots);
 
@@ -82,6 +87,12 @@ class ConsumptionHistoryServiceTest {
 
         assertEquals(3, response.size());
         assertEquals(
+                new BigDecimal("2.500000"),
+                response.get(0).dailyEnergyKwh());
+        assertEquals(
+                new BigDecimal("6.250000"),
+                response.get(0).dailyCost());
+        assertEquals(
                 LocalDate.parse("2026-07-21"),
                 response.get(2).date());
         assertEquals(
@@ -90,6 +101,12 @@ class ConsumptionHistoryServiceTest {
         assertEquals(
                 new BigDecimal("87.750000"),
                 response.get(2).totalCost());
+        assertEquals(
+                new BigDecimal("7.300000"),
+                response.get(2).dailyEnergyKwh());
+        assertEquals(
+                new BigDecimal("18.250000"),
+                response.get(2).dailyCost());
     }
 
     @Test

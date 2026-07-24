@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,9 @@ public class ConsumptionHistoryService {
                     "Home not found: " + homeId);
         }
 
-        OffsetDateTime rangeStart = from.atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime rangeStart = from.minusDays(1)
+                .atStartOfDay()
+                .atOffset(ZoneOffset.UTC);
 
         OffsetDateTime rangeEnd = to.plusDays(1)
                 .atStartOfDay()
@@ -65,13 +68,43 @@ public class ConsumptionHistoryService {
             lastSnapshotByDay.put(snapshotDate, snapshot);
         }
 
-        return lastSnapshotByDay.entrySet()
-                .stream()
-                .map(entry -> new DailyConsumptionResponse(
-                        entry.getKey(),
-                        entry.getValue().getTotalEnergyKwh(),
-                        entry.getValue().getTotalCost()))
-                .toList();
+        ConsumptionSnapshot previousSnapshot = lastSnapshotByDay.get(from.minusDays(1));
+        List<DailyConsumptionResponse> response = new java.util.ArrayList<>();
+
+        for (Map.Entry<LocalDate, ConsumptionSnapshot> entry
+                : lastSnapshotByDay.entrySet()) {
+            if (entry.getKey().isBefore(from)) {
+                continue;
+            }
+
+            ConsumptionSnapshot currentSnapshot = entry.getValue();
+            BigDecimal previousEnergy = previousSnapshot == null
+                    ? BigDecimal.ZERO
+                    : previousSnapshot.getTotalEnergyKwh();
+            BigDecimal previousCost = previousSnapshot == null
+                    ? BigDecimal.ZERO
+                    : previousSnapshot.getTotalCost();
+
+            response.add(new DailyConsumptionResponse(
+                    entry.getKey(),
+                    currentSnapshot.getTotalEnergyKwh(),
+                    currentSnapshot.getTotalCost(),
+                    nonNegativeDifference(
+                            currentSnapshot.getTotalEnergyKwh(),
+                            previousEnergy),
+                    nonNegativeDifference(
+                            currentSnapshot.getTotalCost(),
+                            previousCost)));
+            previousSnapshot = currentSnapshot;
+        }
+
+        return response;
+    }
+
+    private BigDecimal nonNegativeDifference(
+            BigDecimal current,
+            BigDecimal previous) {
+        return current.subtract(previous).max(BigDecimal.ZERO);
     }
 
     private void validateDateRange(LocalDate from, LocalDate to) {
