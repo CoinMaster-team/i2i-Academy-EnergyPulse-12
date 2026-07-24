@@ -7,8 +7,14 @@ export function normalizeHistory(historyResponse) {
     .map((entry) => {
       const totalEnergy = Number(entry.totalEnergyKwh || 0);
       const totalCost = Number(entry.totalCost || 0);
-      const dailyEnergy = Math.max(0, totalEnergy - previousEnergy);
-      const dailyCost = Math.max(0, totalCost - previousCost);
+      const backendDailyEnergy = Number(entry.dailyEnergyKwh);
+      const backendDailyCost = Number(entry.dailyCost);
+      const dailyEnergy = Number.isFinite(backendDailyEnergy)
+        ? Math.max(0, backendDailyEnergy)
+        : Math.max(0, totalEnergy - previousEnergy);
+      const dailyCost = Number.isFinite(backendDailyCost)
+        ? Math.max(0, backendDailyCost)
+        : Math.max(0, totalCost - previousCost);
 
       previousEnergy = totalEnergy;
       previousCost = totalCost;

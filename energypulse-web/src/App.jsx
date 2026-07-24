@@ -1,39 +1,51 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import DashboardPage from "./pages/DashboardPage.jsx";
-import HomePage from "./pages/HomePage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import NotificationConsolePage from "./pages/NotificationConsolePage.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
+
+const DashboardPage = lazy(() => import("./pages/DashboardPage.jsx"));
+const HomePage = lazy(() => import("./pages/HomePage.jsx"));
+const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
+const NotificationConsolePage = lazy(
+  () => import("./pages/NotificationConsolePage.jsx")
+);
+const RegisterPage = lazy(() => import("./pages/RegisterPage.jsx"));
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+      <Suspense
+        fallback={
+          <main className="route-loading" aria-live="polite">
+            Loading EnergyPulse...
+          </main>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationConsolePage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationConsolePage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

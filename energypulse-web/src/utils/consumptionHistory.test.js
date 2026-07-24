@@ -49,3 +49,18 @@ test("never renders negative bars when a cumulative meter resets", () => {
   assert.equal(result[1].kwh, 0);
   assert.equal(result[1].cost, 0);
 });
+
+test("uses backend daily values instead of treating the first total as daily", () => {
+  const result = normalizeHistory([
+    {
+      date: "2026-07-18",
+      totalEnergyKwh: 11.5,
+      totalCost: 24.15,
+      dailyEnergyKwh: 6.1,
+      dailyCost: 12.81,
+    },
+  ]);
+
+  assert.equal(result[0].kwh, 6.1);
+  assert.equal(result[0].cost, 12.81);
+});

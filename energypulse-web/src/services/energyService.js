@@ -1,3 +1,9 @@
+import {
+  clearAuthSession,
+  getAuthToken,
+  notifyAuthExpired,
+} from "./authService";
+
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
 ).replace(/\/$/, "");
@@ -18,6 +24,7 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
+  const token = getAuthToken();
   let response;
 
   try {
@@ -26,6 +33,7 @@ async function request(path, options = {}) {
       headers: {
         Accept: "application/json",
         ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     });
@@ -42,6 +50,11 @@ async function request(path, options = {}) {
     : null;
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession();
+      notifyAuthExpired();
+    }
+
     throw new ApiError(
       payload?.message || "The request could not be completed.",
       {
