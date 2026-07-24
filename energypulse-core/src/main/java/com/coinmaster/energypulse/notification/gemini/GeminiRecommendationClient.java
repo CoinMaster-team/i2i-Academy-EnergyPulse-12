@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class GeminiRecommendationClient implements RecommendationClient {
@@ -49,7 +50,7 @@ public class GeminiRecommendationClient implements RecommendationClient {
                 "contents", List.of(Map.of(
                         "role", "user",
                         "parts", List.of(Map.of("text", prompt)))),
-                "generationConfig", Map.of("maxOutputTokens", 450));
+                "generationConfig", Map.of("maxOutputTokens", 1200));
 
         GeminiResponse response = restClient.post()
                 .uri("/v1beta/models/{model}:generateContent", model)
@@ -59,7 +60,8 @@ public class GeminiRecommendationClient implements RecommendationClient {
                 .retrieve()
                 .body(GeminiResponse.class);
 
-        String recommendation = extractText(response);
+        GeminiCandidate candidate = extractCompletedCandidate(response);
+        String recommendation = extractText(candidate);
         if (!StringUtils.hasText(recommendation)) {
             throw new IllegalStateException("Gemini returned an empty recommendation.");
         }
@@ -67,24 +69,40 @@ public class GeminiRecommendationClient implements RecommendationClient {
         return recommendation.trim();
     }
 
-    private String extractText(GeminiResponse response) {
+    private GeminiCandidate extractCompletedCandidate(GeminiResponse response) {
         if (response == null || response.candidates() == null) {
-            return null;
+            throw new IllegalStateException("Gemini returned no recommendation candidate.");
         }
 
         return response.candidates().stream()
                 .filter(candidate -> candidate.content() != null)
-                .flatMap(candidate -> candidate.content().parts().stream())
+                .findFirst()
+                .map(candidate -> {
+                    if (!"STOP".equals(candidate.finishReason())) {
+                        String finishReason = StringUtils.hasText(candidate.finishReason())
+                                ? candidate.finishReason()
+                                : "UNKNOWN";
+                        throw new IllegalStateException(
+                                "Gemini response was incomplete: " + finishReason);
+                    }
+                    return candidate;
+                })
+                .orElseThrow(() ->
+                        new IllegalStateException("Gemini returned no recommendation candidate."));
+    }
+
+    private String extractText(GeminiCandidate candidate) {
+        return candidate.content().parts().stream()
+                .filter(part -> !Boolean.TRUE.equals(part.thought()))
                 .map(GeminiPart::text)
                 .filter(StringUtils::hasText)
-                .findFirst()
-                .orElse(null);
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
     private record GeminiResponse(List<GeminiCandidate> candidates) {
     }
 
-    private record GeminiCandidate(GeminiContent content) {
+    private record GeminiCandidate(GeminiContent content, String finishReason) {
     }
 
     private record GeminiContent(List<GeminiPart> parts) {
@@ -94,6 +112,6 @@ public class GeminiRecommendationClient implements RecommendationClient {
         }
     }
 
-    private record GeminiPart(String text) {
+    private record GeminiPart(String text, Boolean thought) {
     }
 }
