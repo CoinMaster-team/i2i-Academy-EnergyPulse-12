@@ -1,15 +1,17 @@
 import { RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getStoredUser, logoutUser } from "../services/authService";
 
 function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }) {
   const navigate = useNavigate();
-  const userName =
-    localStorage.getItem("energyPulseUserName") || "EnergyPulse User";
+  const userName = getStoredUser()?.fullName || "EnergyPulse User";
 
-  const handleLogout = () => {
-    localStorage.removeItem("energyPulseLoggedIn");
-    localStorage.removeItem("energyPulseUserName");
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } finally {
+      navigate("/login", { replace: true });
+    }
   };
 
   return (

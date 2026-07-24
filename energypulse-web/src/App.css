@@ -1610,6 +1610,7 @@ select:focus-visible {
 
 .notification-detail-section,
 .notification-recommendation,
+.notification-email-preview,
 .notification-detail-errors {
   margin-top: 14px;
   padding: 16px;
@@ -1624,7 +1625,8 @@ select:focus-visible {
 }
 
 .notification-detail-section > span,
-.notification-recommendation > span {
+.notification-recommendation > span,
+.notification-email-heading > span {
   color: var(--slate-500);
   font-size: 10px;
   font-weight: 900;
@@ -1650,12 +1652,78 @@ select:focus-visible {
   background: var(--blue-50);
 }
 
-.notification-recommendation > span {
+.notification-recommendation > span,
+.notification-email-heading > span {
   display: flex;
   align-items: center;
   gap: 7px;
   margin-bottom: 9px;
   color: var(--blue-700);
+}
+
+.notification-email-preview {
+  border-color: var(--blue-100);
+  background: var(--blue-50);
+}
+
+.notification-email-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-email-heading > span {
+  margin-bottom: 0;
+}
+
+.notification-email-envelope {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--blue-100);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.notification-email-envelope div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.notification-email-envelope dt {
+  color: var(--slate-500);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.notification-email-envelope dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--slate-900);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notification-email-preview pre {
+  max-height: none;
+  overflow: visible;
+  margin: 12px 0 0;
+  padding: 15px;
+  border: 1px solid var(--blue-100);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--slate-700);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .notification-detail-grid {
@@ -1693,6 +1761,12 @@ select:focus-visible {
   border-color: var(--danger-200);
   background: var(--danger-50);
   color: var(--danger-700);
+}
+
+.notification-detail-errors.warning {
+  border-color: var(--warning-200);
+  background: var(--warning-50);
+  color: var(--warning-700);
 }
 
 .notification-detail-errors p {

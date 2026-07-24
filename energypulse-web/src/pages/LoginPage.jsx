@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Lock, Mail, Zap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { loginUser, saveAuthSession } from "../services/authService";
 import "./AuthPage.css";
 
 function LoginPage() {
@@ -12,6 +13,7 @@ function LoginPage() {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (event) => {
     setFormData({
@@ -22,36 +24,28 @@ function LoginPage() {
     setError("");
   };
 
-  const handleSubmit = (event) => {
-  event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  if (!formData.email || !formData.password) {
-    setError("Please complete all fields.");
-    return;
-  }
+    if (!formData.email || !formData.password) {
+      setError("Please complete all fields.");
+      return;
+    }
 
-  const savedUser = JSON.parse(
-    localStorage.getItem("energyPulseRegisteredUser")
-  );
-
-  if (!savedUser) {
-    setError("No registered account was found.");
-    return;
-  }
-
-  if (
-    formData.email !== savedUser.email ||
-    formData.password !== savedUser.password
-  ) {
-    setError("Email address or password is incorrect.");
-    return;
-  }
-
-  localStorage.setItem("energyPulseLoggedIn", "true");
-  localStorage.setItem("energyPulseUserName", savedUser.fullName);
-
-  navigate("/dashboard");
-};
+    try {
+      setIsSubmitting(true);
+      const authResponse = await loginUser({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+      saveAuthSession(authResponse);
+      navigate("/dashboard");
+    } catch (loginError) {
+      setError(loginError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main className="auth-page">
@@ -114,8 +108,12 @@ function LoginPage() {
 
             {error && <p className="auth-error">{error}</p>}
 
-            <button className="auth-submit-button" type="submit">
-              Sign In
+            <button
+              className="auth-submit-button"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
 

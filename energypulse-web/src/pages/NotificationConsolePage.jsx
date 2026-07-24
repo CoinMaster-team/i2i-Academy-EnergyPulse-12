@@ -13,6 +13,10 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardNavigation from "../components/DashboardNavigation";
 import { getNotifications } from "../services/energyService";
+import {
+  buildNotificationEmail,
+  getFriendlyAiNotice,
+} from "../utils/notificationEmail";
 import "../App.css";
 
 const ALL_FILTER = "ALL";
@@ -155,6 +159,9 @@ function NotificationConsolePage() {
       );
     });
   }, [emailFilter, generationFilter, homeFilter, notifications, searchTerm]);
+  const selectedEmail = selectedNotification
+    ? buildNotificationEmail(selectedNotification)
+    : null;
 
   return (
     <main className="app notification-console-page">
@@ -169,7 +176,7 @@ function NotificationConsolePage() {
         <div>
           <span className="section-eyebrow">Notification history</span>
           <h2>Notification Console</h2>
-          <p>Review AI recommendations and email delivery results.</p>
+          <p>Review complete emails, AI recommendations and delivery results.</p>
         </div>
         <div className="notification-heading-mark" aria-hidden="true">
           <MailCheck size={24} />
@@ -419,11 +426,27 @@ function NotificationConsolePage() {
               </p>
             </div>
 
-            <div className="notification-recommendation">
-              <span>
-                <Bot size={17} /> AI recommendation
-              </span>
-              <p>{selectedNotification.recommendationText}</p>
+            <div className="notification-email-preview">
+              <div className="notification-email-heading">
+                <span>
+                  <MailCheck size={17} /> Full email
+                </span>
+                <StatusBadge
+                  type="email"
+                  value={selectedNotification.emailStatus}
+                />
+              </div>
+              <dl className="notification-email-envelope">
+                <div>
+                  <dt>To</dt>
+                  <dd>{selectedEmail.to}</dd>
+                </div>
+                <div>
+                  <dt>Subject</dt>
+                  <dd>{selectedEmail.subject}</dd>
+                </div>
+              </dl>
+              <pre>{selectedEmail.body}</pre>
             </div>
 
             <dl className="notification-detail-grid">
@@ -446,9 +469,19 @@ function NotificationConsolePage() {
             </dl>
 
             {(selectedNotification.generationError || selectedNotification.emailError) && (
-              <div className="notification-detail-errors">
+              <div
+                className={`notification-detail-errors ${
+                  selectedNotification.generationError &&
+                  !selectedNotification.emailError
+                    ? "warning"
+                    : ""
+                }`}
+              >
                 {selectedNotification.generationError && (
-                  <p><strong>AI error:</strong> {selectedNotification.generationError}</p>
+                  <p>
+                    <strong>AI notice:</strong>{" "}
+                    {getFriendlyAiNotice(selectedNotification)}
+                  </p>
                 )}
                 {selectedNotification.emailError && (
                   <p><strong>Email error:</strong> {selectedNotification.emailError}</p>

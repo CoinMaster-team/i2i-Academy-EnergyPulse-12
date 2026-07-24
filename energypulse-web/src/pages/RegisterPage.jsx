@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Lock, Mail, User, Zap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  registerUser,
+  saveAuthSession,
+} from "../services/authService";
 import "./AuthPage.css";
 
 function RegisterPage() {
@@ -14,6 +18,7 @@ function RegisterPage() {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (event) => {
     setFormData({
@@ -24,7 +29,7 @@ function RegisterPage() {
     setError("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (
@@ -37,8 +42,8 @@ function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must contain at least 6 characters.");
+    if (formData.password.length < 8) {
+      setError("Password must contain at least 8 characters.");
       return;
     }
 
@@ -46,21 +51,20 @@ function RegisterPage() {
       setError("Passwords do not match.");
       return;
     }
-    const registeredUser = {
-    fullName: formData.fullName,
-    email: formData.email,
-    password: formData.password,
-    };
-
-    localStorage.setItem(
-    "energyPulseRegisteredUser",
-    JSON.stringify(registeredUser)
-    );
-
-    localStorage.setItem("energyPulseLoggedIn", "true");
-    localStorage.setItem("energyPulseUserName", formData.fullName);
-
-    navigate("/dashboard");
+    try {
+      setIsSubmitting(true);
+      const authResponse = await registerUser({
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+      saveAuthSession(authResponse);
+      navigate("/dashboard");
+    } catch (registrationError) {
+      setError(registrationError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -136,7 +140,7 @@ function RegisterPage() {
                   id="register-password"
                   name="password"
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -164,8 +168,12 @@ function RegisterPage() {
 
             {error && <p className="auth-error">{error}</p>}
 
-            <button className="auth-submit-button" type="submit">
-              Create Account
+            <button
+              className="auth-submit-button"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
