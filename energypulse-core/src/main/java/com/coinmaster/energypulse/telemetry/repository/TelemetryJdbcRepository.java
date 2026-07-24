@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Repository
@@ -35,7 +36,7 @@ public class TelemetryJdbcRepository {
             BigDecimal totalCost,
             String tariffState,
             OffsetDateTime recordedAt) {
-        return jdbcTemplate.update(
+        boolean inserted = jdbcTemplate.update(
                 """
                         INSERT INTO billing_ledger (
                             home_id,
@@ -59,6 +60,41 @@ public class TelemetryJdbcRepository {
                 totalCost,
                 tariffState,
                 recordedAt) == 1;
+
+        if (inserted) {
+            upsertConsumptionSnapshot(
+                    homeId,
+                    totalEnergyKwh,
+                    totalCost,
+                    recordedAt);
+        }
+
+        return inserted;
+    }
+
+    private void upsertConsumptionSnapshot(
+            UUID homeId,
+            BigDecimal totalEnergyKwh,
+            BigDecimal totalCost,
+            OffsetDateTime recordedAt) {
+        OffsetDateTime capturedAt = recordedAt.truncatedTo(ChronoUnit.MINUTES);
+
+        jdbcTemplate.update(
+                """
+                        INSERT INTO consumption_snapshots (
+                            home_id,
+                            total_energy_kwh,
+                            total_cost,
+                            captured_at
+                        ) VALUES (?, ?, ?, ?)
+                        ON CONFLICT (home_id, captured_at) DO UPDATE
+                        SET total_energy_kwh = EXCLUDED.total_energy_kwh,
+                            total_cost = EXCLUDED.total_cost
+                        """,
+                homeId,
+                totalEnergyKwh,
+                totalCost,
+                capturedAt);
     }
 
     public void insertQuotaEvent(
