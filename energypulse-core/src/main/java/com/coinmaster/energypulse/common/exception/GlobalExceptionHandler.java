@@ -1,5 +1,6 @@
 package com.coinmaster.energypulse.common.exception;
 
+import com.coinmaster.energypulse.auth.exception.AuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,22 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
         private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+        @ExceptionHandler(AuthenticationException.class)
+        public ResponseEntity<ApiErrorResponse> handleAuthenticationException(
+                        AuthenticationException exception,
+                        HttpServletRequest request) {
+                ApiErrorResponse response = createResponse(
+                                HttpStatus.UNAUTHORIZED,
+                                exception.getCode(),
+                                exception.getMessage(),
+                                request.getRequestURI(),
+                                Map.of());
+
+                return ResponseEntity
+                                .status(HttpStatus.UNAUTHORIZED)
+                                .body(response);
+        }
 
         @ExceptionHandler(BusinessRuleException.class)
         public ResponseEntity<ApiErrorResponse> handleBusinessRuleException(

@@ -6,5 +6,7 @@ import java.time.LocalDate;
 public record DailyConsumptionResponse(
         LocalDate date,
         BigDecimal totalEnergyKwh,
-        BigDecimal totalCost) {
+        BigDecimal totalCost,
+        BigDecimal dailyEnergyKwh,
+        BigDecimal dailyCost) {
 }
