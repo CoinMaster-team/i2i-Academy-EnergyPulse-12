@@ -2,6 +2,7 @@ package com.coinmaster.energypulse.home.service;
 
 import com.coinmaster.energypulse.common.exception.BusinessRuleException;
 import com.coinmaster.energypulse.home.domain.Home;
+import com.coinmaster.energypulse.home.domain.Appliance;
 import com.coinmaster.energypulse.home.dto.CreateApplianceRequest;
 import com.coinmaster.energypulse.home.dto.CreateHomeRequest;
 import com.coinmaster.energypulse.home.dto.HomeResponse;
@@ -15,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -215,6 +218,43 @@ class HomeServiceTest {
 
         assertEquals("DUPLICATE_APPLIANCE_NAME", exception.getCode());
         verifyNoInteractions(homeMapper, registrationPublisher);
+    }
+
+    @Test
+    void shouldRemoveApplianceAndRepublishActiveTopology() {
+        UUID homeId = UUID.randomUUID();
+        UUID applianceId = UUID.randomUUID();
+        Home home = validHome();
+        Appliance removedAppliance = home.addAppliance(
+                "Refrigerator",
+                new BigDecimal("500.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("450.00"));
+        ReflectionTestUtils.setField(removedAppliance, "id", applianceId);
+        home.addAppliance(
+                "Television",
+                new BigDecimal("400.00"),
+                new BigDecimal("80.00"),
+                new BigDecimal("280.00"));
+        HomeResponse expectedResponse = mock(HomeResponse.class);
+
+        when(homeRepository.findById(homeId)).thenReturn(Optional.of(home));
+        when(homeRepository.saveAndFlush(home)).thenReturn(home);
+        when(homeMapper.toResponse(home)).thenReturn(expectedResponse);
+
+        HomeResponse actualResponse = homeService.removeAppliance(
+                homeId,
+                applianceId);
+
+        assertSame(expectedResponse, actualResponse);
+        assertFalse(removedAppliance.isActive());
+        assertEquals(1, home.getAppliances().size());
+
+        ArgumentCaptor<HomeRegistrationEvent> eventCaptor =
+                ArgumentCaptor.forClass(HomeRegistrationEvent.class);
+        verify(registrationPublisher).publish(eventCaptor.capture());
+        assertEquals(1, eventCaptor.getValue().appliances().size());
+        assertEquals("Television", eventCaptor.getValue().appliances().get(0).name());
     }
 
     private CreateHomeRequest validRequest() {

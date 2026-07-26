@@ -143,4 +143,37 @@ class TelemetryProcessingServiceTest {
                 any(),
                 any());
     }
+
+    @Test
+    void ignoresTelemetryFromRemovedAppliance() {
+        UUID homeId = UUID.randomUUID();
+        UUID applianceId = UUID.randomUUID();
+        Home home = mock(Home.class);
+        Appliance appliance = mock(Appliance.class);
+        TelemetryEvent event = new TelemetryEvent(
+                UUID.randomUUID(),
+                1,
+                OffsetDateTime.now(ZoneOffset.UTC),
+                homeId,
+                applianceId,
+                BigDecimal.ONE);
+
+        when(homeRepository.findById(homeId)).thenReturn(Optional.of(home));
+        when(applianceRepository.findById(applianceId))
+                .thenReturn(Optional.of(appliance));
+        when(appliance.isInactive()).thenReturn(true);
+
+        boolean processed = service.process(event);
+
+        assertThat(processed).isFalse();
+        verify(liveTelemetryService, never()).recordTelemetry(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any());
+    }
 }

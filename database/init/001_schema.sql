@@ -87,6 +87,7 @@ CREATE TABLE appliances (
     safe_limit_watt NUMERIC(12, 2) NOT NULL,
     simulation_min_watt NUMERIC(12, 2) NOT NULL,
     simulation_max_watt NUMERIC(12, 2) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -95,9 +96,6 @@ CREATE TABLE appliances (
         FOREIGN KEY (home_id)
         REFERENCES homes (id)
         ON DELETE CASCADE,
-
-    CONSTRAINT uq_appliances_home_name
-        UNIQUE (home_id, name),
 
     CONSTRAINT chk_appliances_safe_limit_positive
         CHECK (safe_limit_watt > 0),
@@ -196,6 +194,7 @@ CREATE TABLE operational_events (
 
     event_type VARCHAR(50) NOT NULL,
     details JSONB NOT NULL DEFAULT '{}'::JSONB,
+    notification_processed BOOLEAN NOT NULL DEFAULT FALSE,
 
     occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

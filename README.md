@@ -110,7 +110,9 @@ The simulator listens for registered homes and publishes appliance telemetry.
 
 Set `DEMO_DATA_ENABLED=true` in the local `.env` file to create `Home A` and
 `Home B` when the database is empty. Each demo home includes three appliances
-and seven days of consumption history. Existing homes are never replaced.
+and seven days of consumption history. A ready-to-use evaluation account is
+also created with `admin@energypulse.com` / `EnergyPulse2026!`. Existing homes
+and user accounts are never replaced.
 
 ## API Documentation
 
@@ -165,6 +167,15 @@ POST /api/homes/{homeId}/appliances
 
 The endpoint persists the appliance and republishes the updated home topology.
 
+### Remove an Appliance
+
+```http
+DELETE /api/homes/{homeId}/appliances/{applianceId}
+```
+
+The appliance is removed from monitoring and the simulator topology while its
+existing notification history remains available.
+
 ### List Notifications
 
 ```http
@@ -178,7 +189,9 @@ The notification console is available at `http://localhost:5173/notifications`.
 
 Energy events are converted into Turkish Gemini recommendations and delivered
 to the home's contact email. If Gemini is unavailable, EnergyPulse stores and
-sends a safe Turkish fallback recommendation.
+sends a safe Turkish fallback recommendation. The notification console and
+database retain only the 15 most recent email records; older records are
+removed automatically as new notifications arrive.
 
 Set these values in the local `.env` file:
 
