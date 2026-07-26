@@ -4,13 +4,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuthSession } from "../services/authService";
 import "./AuthPage.css";
 
+const DEMO_CREDENTIALS = {
+  email: "admin@energypulse.com",
+  password: "EnergyPulse2026!",
+};
+
 function LoginPage() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState(DEMO_CREDENTIALS);
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +85,7 @@ function LoginPage() {
                   id="login-email"
                   name="email"
                   type="email"
-                  placeholder="name@example.com"
+                  autoComplete="username"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -99,7 +101,7 @@ function LoginPage() {
                   id="login-password"
                   name="password"
                   type="password"
-                  placeholder="Enter your password"
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -120,6 +122,11 @@ function LoginPage() {
           <p className="auth-switch-text">
             Don&apos;t have an account?{" "}
             <Link to="/register">Create an account</Link>
+          </p>
+
+          <p className="auth-credits">
+            Powered by Ahmet Sefa Yıldırım, Emre Çalışkan &amp; Necip Esad
+            Kılıç
           </p>
         </div>
       </section>

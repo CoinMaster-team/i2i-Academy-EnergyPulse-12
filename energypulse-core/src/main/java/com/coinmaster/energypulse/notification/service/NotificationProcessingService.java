@@ -76,6 +76,7 @@ public class NotificationProcessingService {
                             notificationId,
                             candidate,
                             recommendation);
+                    notificationRepository.pruneHistory();
                     return true;
                 })
                 .orElse(false);

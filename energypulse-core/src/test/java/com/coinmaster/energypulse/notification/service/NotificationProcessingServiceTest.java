@@ -72,6 +72,7 @@ class NotificationProcessingServiceTest {
 
         verify(emailDeliveryService).sendNotification(candidate, recommendation);
         verify(notificationRepository).markEmailSent(NOTIFICATION_ID);
+        verify(notificationRepository).pruneHistory();
         verify(notificationRepository, never()).markEmailFailed(
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any());
@@ -102,6 +103,7 @@ class NotificationProcessingServiceTest {
         verify(notificationRepository).markEmailFailed(
                 org.mockito.ArgumentMatchers.eq(NOTIFICATION_ID),
                 contains("SMTP unavailable"));
+        verify(notificationRepository).pruneHistory();
         verify(notificationRepository, never()).markEmailSent(NOTIFICATION_ID);
     }
 
@@ -125,6 +127,7 @@ class NotificationProcessingServiceTest {
         assertFalse(processingService.processEvent(EVENT_ID));
 
         verifyNoInteractions(emailDeliveryService);
+        verify(notificationRepository, never()).pruneHistory();
     }
 
     @Test

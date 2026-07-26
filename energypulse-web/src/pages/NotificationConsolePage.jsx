@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bot,
-  CheckCircle2,
   CircleAlert,
   Clock3,
   MailCheck,
   Search,
-  TriangleAlert,
   X,
 } from "lucide-react";
 
@@ -111,18 +108,6 @@ function NotificationConsolePage() {
     };
   }, [selectedNotification]);
 
-  const summary = useMemo(
-    () => ({
-      total: notifications.length,
-      sent: notifications.filter((item) => item.emailStatus === "SENT").length,
-      failed: notifications.filter((item) => item.emailStatus === "FAILED").length,
-      fallback: notifications.filter(
-        (item) => item.generationStatus === "FALLBACK"
-      ).length,
-    }),
-    [notifications]
-  );
-
   const homeOptions = useMemo(
     () => [...new Set(notifications.map((item) => item.homeName).filter(Boolean))],
     [notifications]
@@ -195,45 +180,6 @@ function NotificationConsolePage() {
           </button>
         </div>
       )}
-
-      <section className="notification-summary-grid" aria-label="Notification summary">
-        <article className="notification-summary-card">
-          <span className="notification-summary-icon total">
-            <MailCheck size={20} />
-          </span>
-          <div>
-            <strong>{summary.total}</strong>
-            <span>Total notifications</span>
-          </div>
-        </article>
-        <article className="notification-summary-card">
-          <span className="notification-summary-icon sent">
-            <CheckCircle2 size={20} />
-          </span>
-          <div>
-            <strong>{summary.sent}</strong>
-            <span>Email sent</span>
-          </div>
-        </article>
-        <article className="notification-summary-card">
-          <span className="notification-summary-icon failed">
-            <TriangleAlert size={20} />
-          </span>
-          <div>
-            <strong>{summary.failed}</strong>
-            <span>Email failed</span>
-          </div>
-        </article>
-        <article className="notification-summary-card">
-          <span className="notification-summary-icon fallback">
-            <Bot size={20} />
-          </span>
-          <div>
-            <strong>{summary.fallback}</strong>
-            <span>AI fallback</span>
-          </div>
-        </article>
-      </section>
 
       <section className="notification-list-panel">
         <div className="notification-filter-bar">

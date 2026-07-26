@@ -127,6 +127,15 @@ export function addAppliance(homeId, applianceRequest) {
   });
 }
 
+export function removeAppliance(homeId, applianceId) {
+  return request(
+    `/api/homes/${encodeURIComponent(homeId)}/appliances/${encodeURIComponent(
+      applianceId
+    )}`,
+    { method: "DELETE" }
+  );
+}
+
 export function getConsumptionHistory(homeId, dateRange = {}) {
   const searchParams = new URLSearchParams();
 
