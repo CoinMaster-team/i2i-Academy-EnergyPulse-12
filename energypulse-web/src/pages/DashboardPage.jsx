@@ -25,6 +25,7 @@ import {
   createHome,
   getConsumptionHistory,
   getHomesStatus,
+  removeAppliance,
 } from "../services/energyService";
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardNavigation from "../components/DashboardNavigation";
@@ -93,16 +94,19 @@ function DashboardPage() {
   const [toast, setToast] = useState(null);
 
   const [isDeviceFormOpen, setIsDeviceFormOpen] = useState(false);
+  const [isDeviceRemovalOpen, setIsDeviceRemovalOpen] = useState(false);
   const [isWarningPanelOpen, setIsWarningPanelOpen] = useState(false);
   const [isHomeFormOpen, setIsHomeFormOpen] = useState(false);
   const [isCreatingHome, setIsCreatingHome] = useState(false);
   const [isAddingDevice, setIsAddingDevice] = useState(false);
+  const [isRemovingDevice, setIsRemovingDevice] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [homeForm, setHomeForm] = useState(createEmptyHomeForm);
   const [homeFormErrors, setHomeFormErrors] = useState({});
 
   const [newDevice, setNewDevice] = useState(createEmptyDeviceForm);
+  const [deviceToRemoveId, setDeviceToRemoveId] = useState("");
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -270,6 +274,8 @@ function DashboardPage() {
   const openHomeDetails = (homeItem) => {
     setSelectedHome(homeItem);
     setIsDeviceFormOpen(false);
+    setIsDeviceRemovalOpen(false);
+    setDeviceToRemoveId("");
     setHistoryError("");
     setNewDevice(createEmptyDeviceForm());
     void loadHistory(homeItem);
@@ -278,6 +284,8 @@ function DashboardPage() {
   const closeHomeDetails = () => {
     setSelectedHome(null);
     setIsDeviceFormOpen(false);
+    setIsDeviceRemovalOpen(false);
+    setDeviceToRemoveId("");
     setHistoryError("");
     setNewDevice(createEmptyDeviceForm());
   };
@@ -470,6 +478,55 @@ function DashboardPage() {
       showToast(addDeviceError.message, "error");
     } finally {
       setIsAddingDevice(false);
+    }
+  };
+
+  const handleRemoveDevice = async (event) => {
+    event.preventDefault();
+
+    if (!selectedHome || !deviceToRemoveId || isRemovingDevice) {
+      return;
+    }
+
+    const device = (selectedHome.devices || []).find(
+      (candidate) => candidate.id === deviceToRemoveId
+    );
+    if (!device) {
+      showToast("Select a device to remove.", "error");
+      return;
+    }
+
+    const removalConfirmed = window.confirm(
+      `Remove ${device.name} from ${selectedHome.name}? Its notification history will be preserved.`
+    );
+    if (!removalConfirmed) {
+      return;
+    }
+
+    try {
+      setIsRemovingDevice(true);
+      await removeAppliance(selectedHome.id, device.id);
+
+      const updatedSelectedHome = {
+        ...selectedHome,
+        devices: (selectedHome.devices || []).filter(
+          (candidate) => candidate.id !== device.id
+        ),
+      };
+      setHomes((currentHomes) =>
+        currentHomes.map((homeItem) =>
+          homeItem.id === selectedHome.id ? updatedSelectedHome : homeItem
+        )
+      );
+      setSelectedHome(updatedSelectedHome);
+      setDeviceToRemoveId("");
+      setIsDeviceRemovalOpen(false);
+      showToast(`${device.name} was removed successfully.`);
+      await loadDashboard({ background: true });
+    } catch (removeDeviceError) {
+      showToast(removeDeviceError.message, "error");
+    } finally {
+      setIsRemovingDevice(false);
     }
   };
 
@@ -1008,22 +1065,39 @@ function DashboardPage() {
                   <h3>Devices</h3>
                   <p>{(selectedHome.devices || []).length} connected devices</p>
                 </div>
-                <button
-                  className="add-device-button"
-                  type="button"
-                  onClick={() =>
-                    setIsDeviceFormOpen((currentValue) => !currentValue)
-                  }
-                >
-                  {isDeviceFormOpen ? (
-                    "Cancel"
-                  ) : (
-                    <>
-                      <Plus size={16} />
-                      Add Device
-                    </>
-                  )}
-                </button>
+                <div className="devices-heading-actions">
+                  <button
+                    className="add-device-button"
+                    type="button"
+                    onClick={() => {
+                      setIsDeviceRemovalOpen(false);
+                      setDeviceToRemoveId("");
+                      setIsDeviceFormOpen((currentValue) => !currentValue);
+                    }}
+                  >
+                    {isDeviceFormOpen ? (
+                      "Cancel"
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        Add Device
+                      </>
+                    )}
+                  </button>
+                  <button
+                    className="remove-device-button"
+                    type="button"
+                    disabled={(selectedHome.devices || []).length === 0 || isRemovingDevice}
+                    onClick={() => {
+                      setIsDeviceFormOpen(false);
+                      setIsDeviceRemovalOpen((currentValue) => !currentValue);
+                      setDeviceToRemoveId("");
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    {isDeviceRemovalOpen ? "Cancel" : "Remove Device"}
+                  </button>
+                </div>
               </div>
 
               {isDeviceFormOpen && (
@@ -1080,6 +1154,31 @@ function DashboardPage() {
                   </label>
                   <button type="submit" disabled={isAddingDevice}>
                     {isAddingDevice ? "Saving..." : "Save Device"}
+                  </button>
+                </form>
+              )}
+
+              {isDeviceRemovalOpen && (
+                <form className="device-remove-form" onSubmit={handleRemoveDevice}>
+                  <label>
+                    Device to remove
+                    <select
+                      value={deviceToRemoveId}
+                      onChange={(event) => setDeviceToRemoveId(event.target.value)}
+                      required
+                    >
+                      <option value="">Select a device</option>
+                      {(selectedHome.devices || []).map((device) => (
+                        <option key={device.id} value={device.id}>
+                          {device.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>Monitoring will stop; existing notification history will remain.</p>
+                  <button type="submit" disabled={!deviceToRemoveId || isRemovingDevice}>
+                    <Trash2 size={16} />
+                    {isRemovingDevice ? "Removing..." : "Remove Device"}
                   </button>
                 </form>
               )}

@@ -1,7 +1,7 @@
 .auth-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   background: #f8fafc;
   color: #172033;
 }
@@ -155,6 +155,15 @@
   color: #2563eb;
   text-decoration: none;
   font-weight: 800;
+}
+
+.auth-credits {
+  margin: 38px auto 0;
+  max-width: 360px;
+  color: #98a2b3;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 @media (max-width: 800px) {

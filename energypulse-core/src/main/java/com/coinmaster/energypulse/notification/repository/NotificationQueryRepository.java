@@ -5,6 +5,7 @@ import com.coinmaster.energypulse.notification.dto.GeneratedRecommendation;
 import com.coinmaster.energypulse.notification.dto.NotificationCandidate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,6 +16,8 @@ import java.util.UUID;
 
 @Repository
 public class NotificationQueryRepository {
+
+    private static final int HISTORY_LIMIT = 15;
 
     private static final String SELECT_CANDIDATE = """
             SELECT
@@ -33,6 +36,7 @@ public class NotificationQueryRepository {
             LEFT JOIN ai_notifications notification
                 ON notification.operational_event_id = event.id
             WHERE notification.id IS NULL
+              AND event.notification_processed = FALSE
               AND event.event_type IN (
                   'QUOTA_80_REACHED',
                   'QUOTA_100_REACHED',
@@ -76,8 +80,10 @@ public class NotificationQueryRepository {
 
     public List<NotificationResponse> findAll() {
         return jdbcTemplate.query(
-                SELECT_NOTIFICATION + " ORDER BY notification.created_at DESC",
-                this::mapNotification);
+                SELECT_NOTIFICATION
+                        + " ORDER BY notification.created_at DESC, notification.id DESC LIMIT ?",
+                this::mapNotification,
+                HISTORY_LIMIT);
     }
 
     public Optional<NotificationResponse> findById(UUID notificationId) {
@@ -105,6 +111,7 @@ public class NotificationQueryRepository {
         return candidates.stream().findFirst();
     }
 
+    @Transactional
     public Optional<UUID> createPendingNotification(
             NotificationCandidate candidate,
             String prompt,
@@ -135,7 +142,16 @@ public class NotificationQueryRepository {
                 recommendation.status(),
                 recommendation.error());
 
-        return notificationIds.stream().findFirst();
+        Optional<UUID> notificationId = notificationIds.stream().findFirst();
+        notificationId.ifPresent(ignored -> jdbcTemplate.update(
+                """
+                        UPDATE operational_events
+                        SET notification_processed = TRUE
+                        WHERE id = ?
+                        """,
+                candidate.operationalEventId()));
+
+        return notificationId;
     }
 
     public void markEmailSent(UUID notificationId) {
@@ -157,6 +173,20 @@ public class NotificationQueryRepository {
                         """,
                 error,
                 notificationId);
+    }
+
+    public void pruneHistory() {
+        jdbcTemplate.update(
+                """
+                        DELETE FROM ai_notifications
+                        WHERE id IN (
+                            SELECT id
+                            FROM ai_notifications
+                            ORDER BY created_at DESC, id DESC
+                            OFFSET ?
+                        )
+                        """,
+                HISTORY_LIMIT);
     }
 
     private NotificationResponse mapNotification(ResultSet resultSet, int rowNumber)
