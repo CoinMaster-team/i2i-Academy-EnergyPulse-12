@@ -11,7 +11,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -19,9 +18,7 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Entity
-@Table(name = "appliances", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_appliances_home_name", columnNames = { "home_id", "name" })
-})
+@Table(name = "appliances")
 public class Appliance {
 
     @Id
@@ -45,6 +42,9 @@ public class Appliance {
     @Column(name = "simulation_max_watt", nullable = false, precision = 12, scale = 2)
     private BigDecimal simulationMaxWatt;
 
+    @Column(name = "active", nullable = false)
+    private boolean active;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -66,6 +66,7 @@ public class Appliance {
         this.safeLimitWatt = safeLimitWatt;
         this.simulationMinWatt = simulationMinWatt;
         this.simulationMaxWatt = simulationMaxWatt;
+        this.active = true;
     }
 
     @PrePersist
@@ -102,6 +103,18 @@ public class Appliance {
 
     public BigDecimal getSimulationMaxWatt() {
         return simulationMaxWatt;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public boolean isInactive() {
+        return !active;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 
     public OffsetDateTime getCreatedAt() {

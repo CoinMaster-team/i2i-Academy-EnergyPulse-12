@@ -34,3 +34,28 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at
 
 ALTER TABLE auth_sessions
     ALTER COLUMN token_hash TYPE VARCHAR(64);
+
+ALTER TABLE appliances
+    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE appliances
+    DROP CONSTRAINT IF EXISTS uq_appliances_home_name;
+
+ALTER TABLE operational_events
+    ADD COLUMN IF NOT EXISTS notification_processed BOOLEAN NOT NULL DEFAULT FALSE;
+
+UPDATE operational_events event
+SET notification_processed = TRUE
+WHERE EXISTS (
+    SELECT 1
+    FROM ai_notifications notification
+    WHERE notification.operational_event_id = event.id
+);
+
+DELETE FROM ai_notifications
+WHERE id IN (
+    SELECT id
+    FROM ai_notifications
+    ORDER BY created_at DESC, id DESC
+    OFFSET 15
+);

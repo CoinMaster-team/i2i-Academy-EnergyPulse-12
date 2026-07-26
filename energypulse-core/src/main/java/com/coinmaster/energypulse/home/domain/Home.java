@@ -15,8 +15,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Entity
@@ -126,7 +126,18 @@ public class Home {
     }
 
     public List<Appliance> getAppliances() {
-        return Collections.unmodifiableList(appliances);
+        return appliances.stream()
+                .filter(Appliance::isActive)
+                .toList();
+    }
+
+    public Optional<Appliance> deactivateAppliance(UUID applianceId) {
+        Optional<Appliance> appliance = appliances.stream()
+                .filter(Appliance::isActive)
+                .filter(candidate -> applianceId.equals(candidate.getId()))
+                .findFirst();
+        appliance.ifPresent(Appliance::deactivate);
+        return appliance;
     }
 
     public UUID getId() {

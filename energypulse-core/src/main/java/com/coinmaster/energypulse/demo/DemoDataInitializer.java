@@ -1,5 +1,7 @@
 package com.coinmaster.energypulse.demo;
 
+import com.coinmaster.energypulse.auth.domain.UserAccount;
+import com.coinmaster.energypulse.auth.repository.UserAccountRepository;
 import com.coinmaster.energypulse.home.dto.CreateApplianceRequest;
 import com.coinmaster.energypulse.home.dto.CreateHomeRequest;
 import com.coinmaster.energypulse.home.dto.HomeResponse;
@@ -13,6 +15,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,6 +23,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -36,21 +40,38 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final HomeRepository homeRepository;
     private final HomeService homeService;
     private final JdbcTemplate jdbcTemplate;
+    private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
     private final String contactEmail;
+    private final String demoUserFullName;
+    private final String demoUserEmail;
+    private final String demoUserPassword;
 
     public DemoDataInitializer(
             HomeRepository homeRepository,
             HomeService homeService,
             JdbcTemplate jdbcTemplate,
-            @Value("${app.demo-data.contact-email:demo@energypulse.local}") String contactEmail) {
+            UserAccountRepository userAccountRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.demo-data.contact-email:demo@energypulse.local}") String contactEmail,
+            @Value("${app.demo-data.user.full-name:EnergyPulse Admin}") String demoUserFullName,
+            @Value("${app.demo-data.user.email:admin@energypulse.com}") String demoUserEmail,
+            @Value("${app.demo-data.user.password:EnergyPulse2026!}") String demoUserPassword) {
         this.homeRepository = homeRepository;
         this.homeService = homeService;
         this.jdbcTemplate = jdbcTemplate;
+        this.userAccountRepository = userAccountRepository;
+        this.passwordEncoder = passwordEncoder;
         this.contactEmail = contactEmail;
+        this.demoUserFullName = demoUserFullName;
+        this.demoUserEmail = demoUserEmail;
+        this.demoUserPassword = demoUserPassword;
     }
 
     @Override
     public void run(ApplicationArguments args) {
+        seedDemoUser();
+
         if (homeRepository.count() > 0) {
             LOGGER.info("Demo data initialization skipped because homes already exist.");
             return;
@@ -90,6 +111,20 @@ public class DemoDataInitializer implements ApplicationRunner {
                 List.of("5.40", "6.10", "5.90", "7.20", "6.80", "7.50", "6.90"));
 
         LOGGER.info("Demo homes and seven-day consumption history initialized.");
+    }
+
+    private void seedDemoUser() {
+        String normalizedEmail = demoUserEmail.trim().toLowerCase(Locale.ROOT);
+        if (userAccountRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            LOGGER.info("Demo user initialization skipped because the account already exists.");
+            return;
+        }
+
+        userAccountRepository.save(new UserAccount(
+                demoUserFullName,
+                normalizedEmail,
+                passwordEncoder.encode(demoUserPassword)));
+        LOGGER.info("Demo user initialized for evaluation access.");
     }
 
     private CreateApplianceRequest appliance(

@@ -67,6 +67,10 @@ public class TelemetryProcessingService {
                         "APPLIANCE_NOT_FOUND",
                         "Telemetry references an unknown appliance."));
 
+        if (appliance.isInactive()) {
+            return false;
+        }
+
         if (!appliance.getHome().getId().equals(home.getId())) {
             throw new IllegalArgumentException(
                     "Telemetry appliance does not belong to the referenced home.");

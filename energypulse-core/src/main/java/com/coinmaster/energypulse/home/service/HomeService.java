@@ -100,6 +100,24 @@ public class HomeService {
         return homeMapper.toResponse(savedHome);
     }
 
+    @Transactional
+    public HomeResponse removeAppliance(UUID homeId, UUID applianceId) {
+        Home home = homeRepository.findById(homeId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "HOME_NOT_FOUND",
+                        "Home not found: " + homeId));
+
+        home.deactivateAppliance(applianceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "APPLIANCE_NOT_FOUND",
+                        "Appliance not found in the selected home: " + applianceId));
+
+        Home savedHome = homeRepository.saveAndFlush(home);
+        registrationPublisher.publish(createRegistrationEvent(savedHome));
+
+        return homeMapper.toResponse(savedHome);
+    }
+
     private void validateTariffs(CreateHomeRequest request) {
         if (request.penaltyTariff().compareTo(request.baseTariff()) <= 0) {
             throw new BusinessRuleException(

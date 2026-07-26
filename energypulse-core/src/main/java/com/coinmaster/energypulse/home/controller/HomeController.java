@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -65,5 +66,19 @@ public class HomeController {
             @PathVariable UUID homeId,
             @Valid @RequestBody CreateApplianceRequest request) {
         return ResponseEntity.ok(homeService.addAppliance(homeId, request));
+    }
+
+    @DeleteMapping("/{homeId}/appliances/{applianceId}")
+    @Operation(
+            summary = "Remove an appliance",
+            description = "Removes an appliance from monitoring and republishes the simulator topology.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Appliance removed successfully."),
+            @ApiResponse(responseCode = "404", description = "Home or appliance not found.")
+    })
+    public ResponseEntity<HomeResponse> removeAppliance(
+            @PathVariable UUID homeId,
+            @PathVariable UUID applianceId) {
+        return ResponseEntity.ok(homeService.removeAppliance(homeId, applianceId));
     }
 }
