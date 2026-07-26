@@ -110,6 +110,49 @@ class ConsumptionHistoryServiceTest {
     }
 
     @Test
+    void shouldFillMissingDaysWithZeroDailyConsumption() {
+        Home home = mock(Home.class);
+
+        List<ConsumptionSnapshot> snapshots = List.of(
+                snapshot(
+                        home,
+                        "10.000000",
+                        "25.000000",
+                        "2026-07-18T18:00:00Z"),
+                snapshot(
+                        home,
+                        "12.500000",
+                        "31.250000",
+                        "2026-07-19T18:00:00Z"),
+                snapshot(
+                        home,
+                        "18.000000",
+                        "45.000000",
+                        "2026-07-21T18:00:00Z"));
+
+        when(homeRepository.existsById(HOME_ID))
+                .thenReturn(true);
+        when(snapshotRepository
+                .findAllByHome_IdAndCapturedAtGreaterThanEqualAndCapturedAtLessThanOrderByCapturedAtAsc(
+                        HOME_ID,
+                        OffsetDateTime.parse("2026-07-18T00:00:00Z"),
+                        OffsetDateTime.parse("2026-07-22T00:00:00Z")))
+                .thenReturn(snapshots);
+
+        List<DailyConsumptionResponse> response = consumptionHistoryService.getDailyHistory(
+                HOME_ID,
+                LocalDate.parse("2026-07-19"),
+                LocalDate.parse("2026-07-21"));
+
+        assertEquals(3, response.size());
+        assertEquals(LocalDate.parse("2026-07-20"), response.get(1).date());
+        assertEquals(new BigDecimal("12.500000"), response.get(1).totalEnergyKwh());
+        assertEquals(BigDecimal.ZERO, response.get(1).dailyEnergyKwh());
+        assertEquals(BigDecimal.ZERO, response.get(1).dailyCost());
+        assertEquals(new BigDecimal("5.500000"), response.get(2).dailyEnergyKwh());
+    }
+
+    @Test
     void shouldRejectInvalidDateRange() {
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,

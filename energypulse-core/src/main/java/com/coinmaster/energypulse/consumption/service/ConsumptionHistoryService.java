@@ -71,13 +71,31 @@ public class ConsumptionHistoryService {
         ConsumptionSnapshot previousSnapshot = lastSnapshotByDay.get(from.minusDays(1));
         List<DailyConsumptionResponse> response = new java.util.ArrayList<>();
 
-        for (Map.Entry<LocalDate, ConsumptionSnapshot> entry
-                : lastSnapshotByDay.entrySet()) {
-            if (entry.getKey().isBefore(from)) {
+        boolean hasRequestedHistory = lastSnapshotByDay.keySet().stream()
+                .anyMatch(date -> !date.isBefore(from) && !date.isAfter(to));
+        if (!hasRequestedHistory) {
+            return response;
+        }
+
+        for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
+            ConsumptionSnapshot currentSnapshot = lastSnapshotByDay.get(date);
+            if (currentSnapshot == null) {
+                BigDecimal totalEnergy = previousSnapshot == null
+                        ? BigDecimal.ZERO
+                        : previousSnapshot.getTotalEnergyKwh();
+                BigDecimal totalCost = previousSnapshot == null
+                        ? BigDecimal.ZERO
+                        : previousSnapshot.getTotalCost();
+
+                response.add(new DailyConsumptionResponse(
+                        date,
+                        totalEnergy,
+                        totalCost,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO));
                 continue;
             }
 
-            ConsumptionSnapshot currentSnapshot = entry.getValue();
             BigDecimal previousEnergy = previousSnapshot == null
                     ? BigDecimal.ZERO
                     : previousSnapshot.getTotalEnergyKwh();
@@ -86,7 +104,7 @@ public class ConsumptionHistoryService {
                     : previousSnapshot.getTotalCost();
 
             response.add(new DailyConsumptionResponse(
-                    entry.getKey(),
+                    date,
                     currentSnapshot.getTotalEnergyKwh(),
                     currentSnapshot.getTotalCost(),
                     nonNegativeDifference(
