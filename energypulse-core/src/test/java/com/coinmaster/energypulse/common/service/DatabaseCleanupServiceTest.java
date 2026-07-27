@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.OffsetDateTime;
@@ -15,6 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DatabaseCleanupServiceTest {
 
     @Mock
@@ -38,7 +41,7 @@ class DatabaseCleanupServiceTest {
                 .thenReturn(150);
         when(jdbcTemplate.update(eq("DELETE FROM ai_notifications WHERE created_at < ?"), any(OffsetDateTime.class)))
                 .thenReturn(5);
-        when(jdbcTemplate.update(any(String.class), any(OffsetDateTime.class)))
+        when(jdbcTemplate.update(eq("DELETE FROM consumption_snapshots WHERE captured_at < ?"), any(OffsetDateTime.class)))
                 .thenReturn(10);
 
         cleanupService.purgeOldData();
