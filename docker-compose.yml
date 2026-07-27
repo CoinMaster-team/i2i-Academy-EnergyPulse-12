@@ -59,6 +59,7 @@ services:
 
       CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
 
     ports:
       - "${KAFKA_PORT}:9092"
@@ -113,7 +114,7 @@ services:
     environment:
       IGNITE_QUIET: "false"
       JVM_OPTS: >-
-        -Xms512m -Xmx512m -Djava.net.preferIPv4Stack=true
+        -Xms256m -Xmx256m -Djava.net.preferIPv4Stack=true
 
     ports:
       - "${IGNITE_CLIENT_PORT}:10800"

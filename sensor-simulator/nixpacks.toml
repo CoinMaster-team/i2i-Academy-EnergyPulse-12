@@ -1,0 +1,8 @@
+[variables]
+JAVA_TOOL_OPTIONS = "-Xmx256m -Xms128m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
+
+[phases.build]
+cmds = ["./mvnw clean package -DskipTests"]
+
+[start]
+cmd = "java -jar target/*.jar"
