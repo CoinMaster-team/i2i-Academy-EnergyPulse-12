@@ -29,10 +29,10 @@ public class DatabaseCleanupService {
 
     public DatabaseCleanupService(
             JdbcTemplate jdbcTemplate,
-            @Value("${app.cleanup.billing-ledger-hours:24}") int billingLedgerRetentionHours,
-            @Value("${app.cleanup.operational-events-days:7}") int operationalEventsRetentionDays,
-            @Value("${app.cleanup.notifications-days:7}") int notificationsRetentionDays,
-            @Value("${app.cleanup.snapshots-days:30}") int snapshotsRetentionDays) {
+            @Value("${app.cleanup.billing-ledger-hours:3}") int billingLedgerRetentionHours,
+            @Value("${app.cleanup.operational-events-days:3}") int operationalEventsRetentionDays,
+            @Value("${app.cleanup.notifications-days:3}") int notificationsRetentionDays,
+            @Value("${app.cleanup.snapshots-days:7}") int snapshotsRetentionDays) {
         this.jdbcTemplate = jdbcTemplate;
         this.billingLedgerRetentionHours = Math.max(1, billingLedgerRetentionHours);
         this.operationalEventsRetentionDays = Math.max(1, operationalEventsRetentionDays);
@@ -46,7 +46,7 @@ public class DatabaseCleanupService {
         purgeOldData();
     }
 
-    @Scheduled(fixedRateString = "${app.cleanup.interval-ms:900000}")
+    @Scheduled(fixedRateString = "${app.cleanup.interval-ms:300000}")
     public void purgeOldData() {
         try {
             OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
@@ -81,8 +81,22 @@ public class DatabaseCleanupService {
 
             LOGGER.info("Database cleanup completed: deleted {} billing ledger entries, {} notifications, {} operational events, {} snapshots",
                     deletedBilling, deletedNotifications, deletedEvents, deletedSnapshots);
+
+            // Reclaim disk space if any rows were deleted
+            if (deletedBilling > 0 || deletedNotifications > 0 || deletedEvents > 0 || deletedSnapshots > 0) {
+                reclaimDiskSpace();
+            }
         } catch (Exception e) {
             LOGGER.error("Failed to execute database cleanup purge", e);
+        }
+    }
+
+    private void reclaimDiskSpace() {
+        try {
+            jdbcTemplate.execute("VACUUM");
+            LOGGER.info("PostgreSQL VACUUM executed successfully to reclaim disk space.");
+        } catch (Exception e) {
+            LOGGER.debug("VACUUM command skipped or not supported on this database engine: {}", e.getMessage());
         }
     }
 }
