@@ -1,8 +1,9 @@
 services:
-  # 1. React Frontend (Static Site - Unlimited Free Bandwidth & Zero RAM)
+  # 1. React Frontend (Static Site - 100% Free)
   - type: web
     name: energypulse-web
     env: static
+    plan: free
     buildCommand: cd energypulse-web && npm ci && npm run build
     staticPublishPath: ./energypulse-web/dist
     routes:
@@ -16,10 +17,11 @@ services:
           name: energypulse-core
           property: url
 
-  # 2. Spring Boot Core REST API (Low-RAM Docker Container)
+  # 2. Spring Boot Core REST API (Docker Container - Free Plan)
   - type: web
     name: energypulse-core
     env: docker
+    plan: free
     dockerfilePath: ./energypulse-core/Dockerfile
     context: ./energypulse-core
     envVars:
@@ -48,10 +50,11 @@ services:
       - key: IGNITE_ENABLED
         value: "false"
 
-  # 3. Sensor Simulator (Spring Boot Worker)
+  # 3. Sensor Simulator (Spring Boot Worker - Free Plan)
   - type: web
     name: energypulse-sensor-simulator
     env: docker
+    plan: free
     dockerfilePath: ./sensor-simulator/Dockerfile
     context: ./sensor-simulator
     envVars:
@@ -61,7 +64,8 @@ services:
         value: "10000"
 
 databases:
-  # PostgreSQL Managed Database
+  # PostgreSQL Managed Database (Free Plan)
   - name: energypulse-postgres
     databaseName: energypulse
     user: energypulse
+    plan: free
