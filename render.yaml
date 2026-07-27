@@ -23,7 +23,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./energypulse-core/Dockerfile
-    context: ./energypulse-core
+    dockerContext: ./energypulse-core
     envVars:
       - key: PORT
         value: 8080
@@ -56,7 +56,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./sensor-simulator/Dockerfile
-    context: ./sensor-simulator
+    dockerContext: ./sensor-simulator
     envVars:
       - key: JAVA_TOOL_OPTIONS
         value: "-Xmx256m -Xms128m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
