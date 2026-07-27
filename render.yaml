@@ -3,7 +3,6 @@ services:
   - type: web
     name: energypulse-web
     env: static
-    plan: free
     buildCommand: cd energypulse-web && npm ci && npm run build
     staticPublishPath: ./energypulse-web/dist
     routes:
