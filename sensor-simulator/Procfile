@@ -1,0 +1,1 @@
+web: java -Xmx256m -Xms128m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -jar target/*.jar
