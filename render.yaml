@@ -15,7 +15,7 @@ services:
         fromService:
           type: web
           name: energypulse-core
-          property: url
+          property: host
 
   # 2. Spring Boot Core REST API (Docker Container - Free Plan)
   - type: web
